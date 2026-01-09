@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug RunningCalendar (main.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "args": ["runningcalendar"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+    ,
+    {
+      "name": "Debug spider class (debug_spider.py)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/debug_spider.py",
+      "console": "integratedTerminal",
+      "args": ["runningcalendar"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  ]
+}
