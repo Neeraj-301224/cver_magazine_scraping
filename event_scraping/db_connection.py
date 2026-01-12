@@ -24,39 +24,39 @@ def get_connection(settings=None):
         except Exception:
             # Fallback to default values if settings not available
             # Production connection (currently active)
-            #settings = {       
-            #    'DB_HOST': 'sql7.nur4.host-h.net',
-            #    'DB_NAME': 'cveropfnwf_wp7fbf',
-            #    'DB_USER': 'cveropfnwf_998',
-            #    'DB_PASSWORD': '95RnJXcDDkmV16s7VUav',
-            #    'DB_PORT': 3306
-            #}
+            settings = {       
+                'DB_HOST': 'sql7.nur4.host-h.net',
+                'DB_NAME': 'cveropfnwf_wp7fbf',
+                'DB_USER': 'cveropfnwf_998',
+                'DB_PASSWORD': '95RnJXcDDkmV16s7VUav',
+                'DB_PORT': 3306
+            }
             # Local connection (commented out for reference)
-             settings = {
-                 'DB_HOST': 'localhost',
-                 'DB_NAME': 'local',
-                 'DB_USER': 'root',
-                 'DB_PASSWORD': 'root',
-                 'DB_PORT': 10017
-             }
+             #settings = {
+             #    'DB_HOST': 'localhost',
+             #    'DB_NAME': 'local',
+             #    'DB_USER': 'root',
+             #    'DB_PASSWORD': 'root',
+             #    'DB_PORT': 10017
+             #}
     
     # Build DB config from settings
     # Production connection defaults (currently active)
-    #db_config = {
-    #    'host': settings.get('DB_HOST', 'sql7.nur4.host-h.net'),
-    #    'database': settings.get('DB_NAME', 'cveropfnwf_wp7fbf'),
-    #    'user': settings.get('DB_USER', 'cveropfnwf_998'),
-    #    'password': settings.get('DB_PASSWORD', '95RnJXcDDkmV16s7VUav'),
-    #    'port': settings.get('DB_PORT', 3306)
-    #}
-    # Local connection defaults (commented out for reference)
     db_config = {
-         'host': settings.get('DB_HOST', 'localhost'),
-         'database': settings.get('DB_NAME', 'local'),
-         'user': settings.get('DB_USER', 'root'),
-         'password': settings.get('DB_PASSWORD', 'root'),
-         'port': settings.get('DB_PORT', 10017)
-     }
+        'host': settings.get('DB_HOST', 'sql7.nur4.host-h.net'),
+        'database': settings.get('DB_NAME', 'cveropfnwf_wp7fbf'),
+        'user': settings.get('DB_USER', 'cveropfnwf_998'),
+        'password': settings.get('DB_PASSWORD', '95RnJXcDDkmV16s7VUav'),
+        'port': settings.get('DB_PORT', 3306)
+    }
+    # Local connection defaults (commented out for reference)
+    #db_config = {
+    #     'host': settings.get('DB_HOST', 'localhost'),
+    #     'database': settings.get('DB_NAME', 'local'),
+    #     'user': settings.get('DB_USER', 'root'),
+    #     'password': settings.get('DB_PASSWORD', 'root'),
+    #     'port': settings.get('DB_PORT', 10017)
+    # }
     
     try:
         connection = mysql.connector.connect(**db_config)

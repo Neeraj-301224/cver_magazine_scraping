@@ -115,11 +115,11 @@ LOCATIONIQ_API_KEY = 'pk.9749c919312e2bc60949144d0edb6806'
 # If a service fails or is blocked, it will automatically try the next one.
 
 # Database configuration for WordPress MySQL database
-DB_HOST = 'localhost'
-DB_NAME = 'local'  # WordPress database name
-DB_USER = 'root'  # Database username
-DB_PASSWORD = 'root'  # Database password
-DB_PORT = 10017  # Database port
+DB_HOST = 'sql7.nur4.host-h.net'
+DB_NAME = 'cveropfnwf_wp7fbf'  # WordPress database name
+DB_USER = 'cveropfnwf_998'  # Database username
+DB_PASSWORD = '95RnJXcDDkmV16s7VUav'  # Database password
+DB_PORT = 3306  # Database port
 
 # Backup retention settings
 BACKUP_RETENTION_DAYS = 7  # Number of days to keep backup files (older files will be deleted)
