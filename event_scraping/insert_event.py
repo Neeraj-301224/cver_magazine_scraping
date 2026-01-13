@@ -1,5 +1,5 @@
 """
-Insert event data into WordPress database (wp_posts and wp_postmeta).
+Insert event data into WordPress database (zuzl_posts and zuzl_postmeta).
 Processes all JSON files from scraped_data folder and checks for duplicates.
 """
 import json
@@ -54,10 +54,10 @@ def event_exists(event):
         # Only check for 'publish' status (exclude trashed posts)
         # First, try to find by URL (stored in postmeta _event_url or in post_content)
         if url:
-            # Check if URL is stored in postmeta (join with wp_posts to check status)
+            # Check if URL is stored in postmeta (join with zuzl_posts to check status)
             url_check_sql = """
-            SELECT pm.post_id FROM wp_postmeta pm
-            JOIN wp_posts p ON pm.post_id = p.ID
+            SELECT pm.post_id FROM zuzl_postmeta pm
+            JOIN zuzl_posts p ON pm.post_id = p.ID
             WHERE pm.meta_key = '_event_url' 
             AND pm.meta_value = %s
             AND p.post_type = 'oum-location-dev'
@@ -73,7 +73,7 @@ def event_exists(event):
             
             # Also check in post_content (some events might have URL in content)
             content_check_sql = """
-            SELECT ID FROM wp_posts 
+            SELECT ID FROM zuzl_posts 
             WHERE post_content LIKE %s 
             AND post_type = 'oum-location-dev'
             AND post_status = 'publish'
@@ -98,7 +98,7 @@ def event_exists(event):
             if post_date_str:
                 # Check by post_title and post_date (only published posts)
                 name_date_sql = """
-                SELECT ID FROM wp_posts 
+                SELECT ID FROM zuzl_posts 
                 WHERE post_title = %s 
                 AND DATE(post_date) = %s 
                 AND post_type = 'oum-location-dev'
@@ -124,7 +124,7 @@ def event_exists(event):
 
 
 def get_term_id_by_name(cursor, category_name, subcategory_name=None):
-    """Get term_id from wp_terms table based on category or subcategory name.
+    """Get term_id from zuzl_terms table based on category or subcategory name.
     
     Tries subcategory first, then falls back to category name.
     Compares against a list of valid categories using LIKE operator, then queries database.
@@ -140,7 +140,7 @@ def get_term_id_by_name(cursor, category_name, subcategory_name=None):
     if not cursor:
         return None
     
-    # List of valid category names from wp_terms
+    # List of valid category names from zuzl_terms
     valid_categories = [
         'Charity Events',
         'Crossfit',
@@ -165,7 +165,7 @@ def get_term_id_by_name(cursor, category_name, subcategory_name=None):
     
     # Query to get term_id from database
     query_exact = """
-    SELECT term_id FROM wp_terms 
+    SELECT term_id FROM zuzl_terms 
     WHERE LOWER(name) = LOWER(%s)
     LIMIT 1
     """
@@ -267,9 +267,9 @@ def insert_event(event):
         # Create slug from name
         slug = name.lower().replace(' ', '-').replace(':', '').replace('&', 'and')[:200]
         
-        # Insert into wp_posts
+        # Insert into zuzl_posts
         post_sql = """
-        INSERT INTO wp_posts (
+        INSERT INTO zuzl_posts (
             post_author, post_date, post_date_gmt, post_content, post_title,
             post_excerpt, post_status, comment_status, ping_status, post_password,
             post_name, to_ping, pinged, post_modified, post_modified_gmt,
@@ -315,7 +315,7 @@ def insert_event(event):
         
         # Update GUID
         guid = f"http://localhost/?p={post_id}"
-        cursor.execute("UPDATE wp_posts SET guid = %s WHERE ID = %s", (guid, post_id))
+        cursor.execute("UPDATE zuzl_posts SET guid = %s WHERE ID = %s", (guid, post_id))
         
         # Insert postmeta
         meta_entries = [
@@ -328,32 +328,32 @@ def insert_event(event):
             ('_event_url', url)  # Store URL for duplicate checking
         ]
         
-        meta_sql = "INSERT INTO wp_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)"
+        meta_sql = "INSERT INTO zuzl_postmeta (post_id, meta_key, meta_value) VALUES (%s, %s, %s)"
         
         for meta_key, meta_value in meta_entries:
             cursor.execute(meta_sql, (post_id, meta_key, meta_value))
         
         print(f"Inserted {len(meta_entries)} meta entries for post {post_id}")
         
-        # Insert category relationship in wp_term_relationships
-        # Get category_term_id from wp_terms based on category/subcategory name
+        # Insert category relationship in zuzl_term_relationships
+        # Get category_term_id from zuzl_terms based on category/subcategory name
         category = event.get('category', '')
         subcategory = event.get('subcategory', '')
         
         category_term_id = get_term_id_by_name(cursor, category, subcategory)
         
         if category_term_id:
-            # Get term_taxonomy_id from wp_term_taxonomy
-            taxonomy_query = "SELECT term_taxonomy_id FROM wp_term_taxonomy WHERE term_id = %s"
+            # Get term_taxonomy_id from zuzl_term_taxonomy
+            taxonomy_query = "SELECT term_taxonomy_id FROM zuzl_term_taxonomy WHERE term_id = %s"
             cursor.execute(taxonomy_query, (category_term_id,))
             taxonomy_result = cursor.fetchone()
             
             if taxonomy_result:
                 term_taxonomy_id = taxonomy_result[0]
                 
-                # Insert into wp_term_relationships
+                # Insert into zuzl_term_relationships
                 relationship_sql = """
-                INSERT INTO wp_term_relationships (object_id, term_taxonomy_id, term_order)
+                INSERT INTO zuzl_term_relationships (object_id, term_taxonomy_id, term_order)
                 VALUES (%s, %s, %s)
                 """
                 cursor.execute(relationship_sql, (post_id, term_taxonomy_id, 0))
