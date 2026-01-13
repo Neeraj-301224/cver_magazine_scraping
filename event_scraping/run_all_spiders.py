@@ -39,23 +39,23 @@ def run_all_spiders():
     spiders = [
         # Community & Social
         "bhf",
-        "eventbrite",
-        "gosh",
-        "macmillan",
+        ##"eventbrite",
+        ##"gosh",
+        ##"macmillan",
         # Fitness & Training
-        "findarace",
-        "letsdothis",
-        "runguides",
-        "runthrough",
-        "timeoutdoors",
-        "ukrunningevents",
+        ##"findarace",
+        ##"letsdothis",
+        ##"runguides",
+        ##"runthrough",
+        ##"timeoutdoors",
+        ##"ukrunningevents",
         # Wellness & Mind
-        "mindfulnessassociation",
-        "mindfulnessuk",
-        "mindspace",
-        "pilatesflow",
-        "sharphamtrust",
-        "yogawithmanon",
+        ##"mindfulnessassociation",
+        ##"mindfulnessuk",
+        ##"mindspace",
+        ##"pilatesflow",
+        ##"sharphamtrust",
+        ##"yogawithmanon",
     ]
     
     print("=" * 80)
