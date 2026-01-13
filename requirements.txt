@@ -3,4 +3,5 @@ selenium>=4.15.0
 webdriver-manager>=4.0.0
 requests>=2.32.0
 lxml>=6.0.0
-
+mysql-connector-python>=8.0.0
+itemadapter>=0.7.0
