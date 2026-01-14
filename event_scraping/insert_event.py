@@ -60,7 +60,7 @@ def event_exists(event):
             JOIN zuzl_posts p ON pm.post_id = p.ID
             WHERE pm.meta_key = '_event_url' 
             AND pm.meta_value = %s
-            AND p.post_type = 'oum-location-dev'
+            AND p.post_type = 'oum-location'
             AND p.post_status = 'publish'
             LIMIT 1
             """
@@ -75,7 +75,7 @@ def event_exists(event):
             content_check_sql = """
             SELECT ID FROM zuzl_posts 
             WHERE post_content LIKE %s 
-            AND post_type = 'oum-location-dev'
+            AND post_type = 'oum-location'
             AND post_status = 'publish'
             LIMIT 1
             """
@@ -101,7 +101,7 @@ def event_exists(event):
                 SELECT ID FROM zuzl_posts 
                 WHERE post_title = %s 
                 AND DATE(post_date) = %s 
-                AND post_type = 'oum-location-dev'
+                AND post_type = 'oum-location'
                 AND post_status = 'publish'
                 LIMIT 1
                 """
@@ -304,7 +304,7 @@ def insert_event(event):
             0,  # post_parent
             '',  # guid (will update after)
             0,  # menu_order
-            'oum-location-dev',  # post_type - change if needed
+            'oum-location',  # post_type - change if needed
             '',  # post_mime_type
             0  # comment_count
         )
@@ -314,7 +314,7 @@ def insert_event(event):
         print(f"Inserted post with ID: {post_id}")
         
         # Update GUID
-        guid = f"http://localhost/?p={post_id}"
+        guid = f"https://cveronline.com/?p={post_id}"
         cursor.execute("UPDATE zuzl_posts SET guid = %s WHERE ID = %s", (guid, post_id))
         
         # Insert postmeta
