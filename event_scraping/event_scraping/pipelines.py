@@ -71,6 +71,8 @@ def _sanitize_dict(d):
         if val is None:
             continue
         if isinstance(val, str):
+            if key == "url":
+                continue  # Do not modify URLs; leave as-is
             if key == "address":
                 val = _clean_json_like_address(val)
             if key in DATE_KEYS:

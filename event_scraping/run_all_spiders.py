@@ -38,25 +38,25 @@ def run_all_spiders():
     # Define all spiders from all categories
     spiders = [
         # Community & Social
-        "bhf",
+        #"bhf",
         "eventbrite",
         "gosh",
         "macmillan",
-        # Fitness & Training
-        "findarace",
-        "letsdothis",
-        "runguides",
-        "runthrough", 
-        #"teamaretas",
-        "timeoutdoors",
-        "ukrunningevents",
-        # Wellness & Mind
-        "mindfulnessassociation",
-        "mindfulnessuk",
-        "mindspace",
-        "pilatesflow",
-        "sharphamtrust",
-        "yogawithmanon",
+        ## Fitness & Training
+        #"findarace",
+        #"letsdothis",
+        #"runguides",
+        #"runthrough", 
+        ##"teamaretas",       
+        #"timeoutdoors",
+        #"ukrunningevents",
+        ## Wellness & Mind
+        #"mindfulnessassociation",
+        #"mindfulnessuk",
+        #"mindspace",
+        #"pilatesflow",
+        #"sharphamtrust",
+        #"yogawithmanon",
     ]
     
     print("=" * 80)
@@ -160,7 +160,7 @@ def main():
         print("=" * 80)
         print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         
-        #insert_events()
+        insert_events()
         
         # Final summary
         end_time = datetime.now()
