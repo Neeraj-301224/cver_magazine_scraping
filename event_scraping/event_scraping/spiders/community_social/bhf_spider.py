@@ -31,7 +31,7 @@ class BHFSpider(BaseSpider):
             'Adventure running': ['adventure run', 'adventure running', 'adventure race'],
             'Trail running': ['trail run', 'trail running', 'trail race', 'trail', 'off road'],
             'Park runs': ['parkrun', 'park run', 'parkrun', 'parkrun'],
-            'Charity runs': ['charity run', 'charity running', 'charity race', 'fundraising'],
+            'Charity runs': ['charity run', 'charity running', 'charity race'],
             'Fun runs': ['fun run', 'fun running', 'fun race', 'fun run'],
             'Obstacle courses': ['obstacle course', 'obstacle race', 'obstacle run', 'mud run', 'mud race'],
             'Inflatable courses': ['inflatable', 'bouncy', 'inflatable course', 'inflatable race']
@@ -40,7 +40,7 @@ class BHFSpider(BaseSpider):
             'Sportives': ['sportive', 'sportif', 'cycling sportive', 'bike sportive'],
             'Time Trials': ['time trial', 'tt', 'cycling time trial', 'bike time trial'],
             'Road Races': ['road race', 'cycling race', 'bike race', 'road cycling'],
-            'Cyclocross': ['cyclocross', 'cx', 'cross', 'cyclo-cross'],
+            'Cyclocross': ['cyclocross', 'cx', 'cyclo-cross'],
             'Mountain Biking': ['mountain bike', 'mtb', 'mountain biking', 'off road cycling'],
             'Track Cycling': ['track cycling', 'velodrome', 'track race', 'track bike'],
             'Charity & Challenge Rides': ['charity ride', 'challenge ride', 'charity cycling', 'fundraising ride']
@@ -55,10 +55,10 @@ class BHFSpider(BaseSpider):
             'CrossFit Competitions': ['crossfit', 'cross fit', 'crossfit competition', 'crossfit games'],
             'Hyrox / DEKA FIT': ['hyrox', 'deka fit', 'deka', 'hyrox race', 'deka race'],
             'Obstacle Fitness Events': ['obstacle fitness', 'fitness obstacle', 'fitness challenge'],
-            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp', 'challenge']
+            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp']
         },
         'Multi-Discipline': {
-            'Triathlon': ['triathlon', 'tri', 'triathlete', 'triathlon race'],
+            'Triathlon': ['triathlon', 'triathlete', 'triathlon race'],
             'Duathlon': ['duathlon', 'du', 'duathlete', 'duathlon race'],
             'Aquathlon': ['aquathlon', 'aqua', 'aquathlete', 'aquathlon race'],
             'Adventure Races': ['adventure race', 'multi sport', 'multi-sport', 'adventure challenge']
@@ -212,52 +212,89 @@ class BHFSpider(BaseSpider):
         if title:
             title = title.strip()
         
-        # Enhanced description extraction - exclude sidebar content
+        # Enhanced description extraction - exclude sidebar and shared promos
         desc_parts = []
-        
-        # Try BHF-specific selectors first - exclude sidebar
-        # Main content area (exclude sidebar)
-        main_content = response.css('main, .main-content, [class*="main"], article, [class*="content"]')
-        if main_content:
-            # Exclude sidebar elements
-            main_content = main_content.css(':not([class*="sidebar"]):not([class*="side-bar"]):not([class*="event-sidebar"])')
-            
-            # Try to find description in main content
-            desc_selectors = [
-                '.description *::text',
-                '.event-description *::text',
-                '.content *::text',
-                'article *::text',
-                '.event-details *::text',
-                'p::text',
-                '[class*="description"] *::text',
-            ]
-            
-            for selector in desc_selectors:
-                parts = main_content.css(selector).getall()
-                if parts:
-                    # Filter out common sidebar/promotional text (less strict)
-                    filtered_parts = []
-                    for part in parts:
+        # Skip patterns for shared/promotional text (same on every BHF event page)
+        skip_patterns = [
+            'volunteer in our shops a great way',
+            'find bhf near you find your nearest',
+            'donate items we pick up furniture',
+            'donate money bhf funds the science',
+            'london to brighton bike ride',  # Shared promo on every event page
+            'sign up now for our next london to brighton',
+            'a great way to meet new people and share your skills',
+        ]
+
+        # Primary: full description from known BHF structure (main/section[2]/.../section)
+        desc_section_xpaths = [
+            '/html/body/main/section[2]/div/div/div[1]/section',
+            '//main/section[2]/div/div/div[1]/section',
+            '//main/section[2]//section',
+        ]
+        for xpath in desc_section_xpaths:
+            section = response.xpath(xpath)
+            if section:
+                # Prefer paragraph text, then any text nodes
+                text_nodes = section.xpath('.//p//text()').getall()
+                if not text_nodes:
+                    text_nodes = section.xpath('.//text()').getall()
+                if text_nodes:
+                    filtered = []
+                    for part in text_nodes:
                         part = part.strip()
-                        if part and len(part) > 10:  # Skip very short text
-                            # Only skip if it's clearly promotional (exact matches or starts with)
-                            skip_patterns = [
-                                'volunteer in our shops a great way',
-                                'find bhf near you find your nearest',
-                                'donate items we pick up furniture',
-                                'donate money bhf funds the science',
-                            ]
+                        if part and len(part) > 15:
                             part_lower = part.lower()
-                            # Only skip if it starts with or is exactly a promotional pattern
-                            should_skip = False
-                            for pattern in skip_patterns:
-                                if part_lower.startswith(pattern) or part_lower == pattern:
-                                    should_skip = True
-                                    break
-                            
-                            if not should_skip:
-                                filtered_parts.append(part)
+                            if not any(p in part_lower for p in skip_patterns):
+                                filtered.append(part)
+                    if filtered:
+                        desc_parts = filtered
+                        self.logger.debug(f'Found description from XPath: {xpath}')
+                        break
+            if desc_parts:
+                break
+
+        if not desc_parts:
+            # Fallback: first paragraph(s) after the h1 in main content
+            h1 = response.css('h1')
+            if h1:
+                after_h1 = h1.xpath('./following-sibling::*//p//text() | ./following-sibling::p//text()').getall()
+                if after_h1:
+                    filtered = []
+                    for part in after_h1:
+                        part = part.strip()
+                        if part and len(part) > 20:
+                            part_lower = part.lower()
+                            if not any(p in part_lower for p in skip_patterns):
+                                filtered.append(part)
+                    if filtered:
+                        desc_parts = filtered
+                        self.logger.debug('Found description from content after h1')
+
+        if not desc_parts:
+            # Try BHF-specific selectors - main content only, exclude sidebar
+            main_content = response.css('main, .main-content, [class*="main"], article, [class*="content"]')
+            if main_content:
+                main_content = main_content.css(':not([class*="sidebar"]):not([class*="side-bar"]):not([class*="event-sidebar"])')
+                desc_selectors = [
+                    '.description *::text',
+                    '.event-description *::text',
+                    '.content *::text',
+                    'article *::text',
+                    '.event-details *::text',
+                    'p::text',
+                    '[class*="description"] *::text',
+                ]
+                for selector in desc_selectors:
+                    parts = main_content.css(selector).getall()
+                    if parts:
+                        filtered_parts = []
+                        for part in parts:
+                            part = part.strip()
+                            if part and len(part) > 10:
+                                part_lower = part.lower()
+                                should_skip = any(p in part_lower for p in skip_patterns)
+                                if not should_skip:
+                                    filtered_parts.append(part)
                     
                     if filtered_parts:
                         desc_parts = filtered_parts
@@ -273,38 +310,35 @@ class BHFSpider(BaseSpider):
                 '[class*="description"] p::text',
                 'p::text',  # Last resort - get all paragraphs
             ]
-            
             for selector in desc_selectors:
                 parts = response.css(selector).getall()
                 if parts:
-                    # Very lenient filtering - only skip obvious promotional sections
                     filtered_parts = []
                     for part in parts:
                         part = part.strip()
                         if part and len(part) > 10:
-                            # Only skip if it's clearly a promotional section (exact match)
-                            skip_patterns = [
-                                'volunteer in our shops a great way to meet',
-                                'find bhf near you find your nearest bhf shop',
-                            ]
                             part_lower = part.lower()
-                            should_skip = any(pattern in part_lower for pattern in skip_patterns)
-                            
+                            should_skip = any(p in part_lower for p in skip_patterns)
                             if not should_skip:
                                 filtered_parts.append(part)
-                    
                     if filtered_parts:
                         desc_parts = filtered_parts
                         self.logger.debug(f"Found description using fallback selector: {selector}")
                         break
         
-        # Last resort: if still no description, get first few paragraphs from main content (very lenient)
+        # Last resort: first few paragraphs from main content, excluding shared promos
         if not desc_parts:
-            # Get first 3 paragraphs from main content area
-            main_paragraphs = response.css('main p::text, article p::text').getall()[:3]
+            main_paragraphs = response.css('main p::text, article p::text').getall()[:5]
             if main_paragraphs:
-                desc_parts = [p.strip() for p in main_paragraphs if p.strip() and len(p.strip()) > 10]
-                if desc_parts:
+                kept = []
+                for p in main_paragraphs:
+                    p = p.strip()
+                    if p and len(p) > 10:
+                        pl = p.lower()
+                        if not any(sp in pl for sp in skip_patterns):
+                            kept.append(p)
+                if kept:
+                    desc_parts = kept
                     self.logger.debug(f"Found description using last resort method: {len(desc_parts)} paragraphs")
         
         # Log if no description found
@@ -410,24 +444,22 @@ class BHFSpider(BaseSpider):
                 'your donation helps us discover',
                 'book and clothing bank',
                 'effects, prevention, treatment, and costs',
+                'london to brighton bike ride',
+                'sign up now for our next london to brighton',
+                'a great way to meet new people and share your skills',
             ]
             
             for part in desc_parts:
                 part = part.strip()
                 if part and len(part) > 10:
                     part_lower = part.lower()
-                    # Skip if contains promotional keywords
                     is_promotional = any(keyword in part_lower for keyword in promotional_keywords)
                     if not is_promotional:
                         filtered_parts.append(part)
             
-            # Use filtered parts or fall back to original
             desc_parts_to_use = filtered_parts if filtered_parts else desc_parts
             
-            # Join and clean up
             joined = ' '.join(desc_parts_to_use).strip()
-            
-            # Remove duplicate sentences/phrases (common in BHF pages)
             sentences = joined.split('.')
             seen_sentences = set()
             unique_sentences = []
@@ -435,26 +467,40 @@ class BHFSpider(BaseSpider):
             for sentence in sentences:
                 sentence = sentence.strip()
                 if sentence and len(sentence) > 10:
-                    # Normalize for comparison (lowercase, remove extra spaces)
                     normalized = ' '.join(sentence.lower().split())
                     if normalized not in seen_sentences:
                         seen_sentences.add(normalized)
                         unique_sentences.append(sentence)
             
-            # Rejoin unique sentences
             cleaned_desc = '. '.join(unique_sentences)
             if cleaned_desc and not cleaned_desc.endswith('.'):
                 cleaned_desc += '.'
             
-            # Get first sentence or first 150 chars (reduced from 200)
             if cleaned_desc:
-                short_description = cleaned_desc.split('.')[0]
-                if len(short_description) > 150:
-                    short_description = short_description[:150].rsplit(' ', 1)[0] + '...'
-                elif len(cleaned_desc) > 150:
-                    short_description = cleaned_desc[:150].rsplit(' ', 1)[0] + '...'
-                else:
-                    short_description = cleaned_desc
+                # Prefer first substantial sentence that is the real event intro (skip eligibility
+                # lines like "This event is open to Own Place participants only." and date-only lines)
+                MIN_SUBSTANTIAL_LENGTH = 60
+                # Skip eligibility one-liners so we use the real event intro as short_description
+                skip_intro_patterns = [
+                    "this event is open to",
+                    "own place participants only",
+                ]
+                short_description = None
+                for sent in unique_sentences:
+                    sent = sent.strip() if sent else ""
+                    if not sent or len(sent) < MIN_SUBSTANTIAL_LENGTH:
+                        continue
+                    sent_lower = sent.lower()
+                    if any(p in sent_lower for p in skip_intro_patterns):
+                        continue
+                    short_description = sent
+                    break
+                if not short_description and unique_sentences:
+                    short_description = unique_sentences[0].strip() if unique_sentences[0] else None
+                if not short_description:
+                    short_description = cleaned_desc[:150].rsplit(" ", 1)[0] + "..." if len(cleaned_desc) > 150 else cleaned_desc
+                elif len(short_description) > 150:
+                    short_description = short_description[:150].rsplit(" ", 1)[0] + "..."
 
         # Address extraction
         address = self.extract_address(response)
@@ -482,8 +528,10 @@ class BHFSpider(BaseSpider):
                     coords = geocoded_coords
                     self.logger.debug(f"Coordinates from geocoding: {coords}")
 
-        # Determine event category and subcategory
-        event_category, event_subcategory = self.get_event_category(title, desc_parts) if title else (None, None)
+        # Determine event categories (Charity Events + activity type e.g. Running, Swimming)
+        event_categories = self.get_event_categories(title, desc_parts) if title else []
+        item['categories'] = event_categories
+        event_category, event_subcategory = (event_categories[0][0], event_categories[0][1]) if event_categories else (None, None)
         
         # Clean and set item fields
         cleaned_title = self.clean_text(title) if title else None
@@ -515,21 +563,20 @@ class BHFSpider(BaseSpider):
                 'your donation helps us discover',
                 'book and clothing bank',
                 'effects, prevention, treatment, and costs',
+                'london to brighton bike ride',
+                'sign up now for our next london to brighton',
+                'a great way to meet new people and share your skills',
             ]
             
             for part in desc_parts:
                 part = part.strip()
                 if part and len(part) > 10:
                     part_lower = part.lower()
-                    # Skip if contains promotional keywords
                     is_promotional = any(keyword in part_lower for keyword in promotional_keywords)
                     if not is_promotional:
                         filtered_parts.append(part)
             
-            # Use filtered parts or fall back to original
             desc_parts_to_use = filtered_parts if filtered_parts else desc_parts
-            
-            # Join and remove duplicate content
             joined = ' '.join(desc_parts_to_use).strip()
             sentences = joined.split('.')
             seen_sentences = set()
@@ -551,15 +598,6 @@ class BHFSpider(BaseSpider):
             # Limit full description to 500 characters
             if full_description and len(full_description) > 500:
                 full_description = full_description[:500].rsplit(' ', 1)[0] + '...'
-        
-        item['raw'] = {
-            'title': title,
-            'date': date,
-            'desc_preview': short_description,
-            'full_description': full_description,
-            'address': address,
-            'coordinates': coords,
-        }
         
         # Check for duplicate items based on URL (most reliable)
         # Use URL as primary key since it's unique per event
@@ -583,9 +621,25 @@ class BHFSpider(BaseSpider):
         # Increment total items scraped
         self.total_items_scraped += 1
         
-        # Log final item data
+        # Re-set description fields immediately before yield so JSON export gets current values
+        # (avoids any later mutation or reference issues before feed exporter serializes)
+        item['short_description'] = cleaned_description
+        item['raw'] = {
+            'title': title,
+            'date': date,
+            'desc_preview': short_description if short_description is not None else None,
+            'full_description': full_description if full_description is not None else None,
+            'address': address,
+            'coordinates': coords,
+        }
+        
+        # Log final item data (includes description preview for debugging JSON output)
         self.logger.info(f"Event extracted - Name: {item['name'][:50] if item['name'] else 'N/A'}, Date: {item['date'] or 'N/A'}, URL: {item['url']}")
         self.logger.debug(f"Description length: {len(desc_parts) if desc_parts else 0} parts, Short desc: {len(short_description) if short_description else 0} chars")
+        if short_description:
+            self.logger.debug(f"short_description (to JSON): {short_description[:80]}...")
+        if full_description:
+            self.logger.debug(f"full_description (to JSON): {full_description[:80]}...")
         
         # Yield item even if some fields are missing
         yield item
@@ -607,15 +661,6 @@ class BHFSpider(BaseSpider):
         
         return False
     
-    def get_event_category(self, title, description_parts):
-        """Determine the specific category and subcategory for an event.
-        
-        For community_social spiders, always returns "Charity Events" for both
-        category and subcategory to ensure correct database lookup.
-        """
-        # Always return "Charity Events" for both category and subcategory
-        return "Charity Events", "Charity Events"
-
     def remove_location_text(self, address):
         """Remove 'Location' text and similar prefixes from address."""
         if not address:

@@ -32,7 +32,7 @@ class GOSHSpider(BaseSpider):
             'Adventure running': ['adventure run', 'adventure running', 'adventure race'],
             'Trail running': ['trail run', 'trail running', 'trail race', 'trail', 'off road'],
             'Park runs': ['parkrun', 'park run', 'parkrun', 'parkrun'],
-            'Charity runs': ['charity run', 'charity running', 'charity race', 'fundraising'],
+            'Charity runs': ['charity run', 'charity running', 'charity race'],
             'Fun runs': ['fun run', 'fun running', 'fun race', 'fun run'],
             'Obstacle courses': ['obstacle course', 'obstacle race', 'obstacle run', 'mud run', 'mud race'],
             'Inflatable courses': ['inflatable', 'bouncy', 'inflatable course', 'inflatable race']
@@ -41,7 +41,7 @@ class GOSHSpider(BaseSpider):
             'Sportives': ['sportive', 'sportif', 'cycling sportive', 'bike sportive'],
             'Time Trials': ['time trial', 'tt', 'cycling time trial', 'bike time trial'],
             'Road Races': ['road race', 'cycling race', 'bike race', 'road cycling'],
-            'Cyclocross': ['cyclocross', 'cx', 'cross', 'cyclo-cross'],
+            'Cyclocross': ['cyclocross', 'cx', 'cyclo-cross'],
             'Mountain Biking': ['mountain bike', 'mtb', 'mountain biking', 'off road cycling'],
             'Track Cycling': ['track cycling', 'velodrome', 'track race', 'track bike'],
             'Charity & Challenge Rides': ['charity ride', 'challenge ride', 'charity cycling', 'fundraising ride']
@@ -56,10 +56,10 @@ class GOSHSpider(BaseSpider):
             'CrossFit Competitions': ['crossfit', 'cross fit', 'crossfit competition', 'crossfit games'],
             'Hyrox / DEKA FIT': ['hyrox', 'deka fit', 'deka', 'hyrox race', 'deka race'],
             'Obstacle Fitness Events': ['obstacle fitness', 'fitness obstacle', 'fitness challenge'],
-            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp', 'challenge']
+            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp']
         },
         'Multi-Discipline': {
-            'Triathlon': ['triathlon', 'tri', 'triathlete', 'triathlon race'],
+            'Triathlon': ['triathlon', 'triathlete', 'triathlon race'],
             'Duathlon': ['duathlon', 'du', 'duathlete', 'duathlon race'],
             'Aquathlon': ['aquathlon', 'aqua', 'aquathlete', 'aquathlon race'],
             'Adventure Races': ['adventure race', 'multi sport', 'multi-sport', 'adventure challenge']
@@ -561,8 +561,10 @@ class GOSHSpider(BaseSpider):
                     coords = geocoded_coords
                     self.logger.debug(f"Coordinates from geocoding: {coords}")
 
-        # Determine event category and subcategory
-        event_category, event_subcategory = self.get_event_category(title, desc_parts) if title else (None, None)
+        # Determine event categories (Charity Events + activity type e.g. Running, Swimming)
+        event_categories = self.get_event_categories(title, desc_parts) if title else []
+        item['categories'] = event_categories
+        event_category, event_subcategory = (event_categories[0][0], event_categories[0][1]) if event_categories else (None, None)
         
         # Clean and set item fields
         cleaned_title = self.clean_text(title) if title else None
@@ -621,15 +623,6 @@ class GOSHSpider(BaseSpider):
         
         return False
     
-    def get_event_category(self, title, description_parts):
-        """Determine the specific category and subcategory for an event.
-        
-        For community_social spiders, always returns "Charity Events" for both
-        category and subcategory to ensure correct database lookup.
-        """
-        # Always return "Charity Events" for both category and subcategory
-        return "Charity Events", "Charity Events"
-
     def remove_location_text(self, address):
         """Remove 'Location' text and similar prefixes from address."""
         if not address:

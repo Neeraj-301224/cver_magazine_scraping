@@ -50,13 +50,13 @@ def get_connection(settings=None):
         'port': settings.get('DB_PORT', 3306)
     }
     # Local connection defaults (commented out for reference)
-    #db_config = {
-    #     'host': settings.get('DB_HOST', 'localhost'),
-    #     'database': settings.get('DB_NAME', 'local'),
-    #     'user': settings.get('DB_USER', 'root'),
-    #     'password': settings.get('DB_PASSWORD', 'root'),
-    #     'port': settings.get('DB_PORT', 10017)
-    # }
+    #b_config = {
+    #    'host': settings.get('DB_HOST', 'localhost'),
+    #    'database': settings.get('DB_NAME', 'local'),
+    #    'user': settings.get('DB_USER', 'root'),
+    #    'password': settings.get('DB_PASSWORD', 'root'),
+    #    'port': settings.get('DB_PORT', 10017)
+    #}
     
     try:
         connection = mysql.connector.connect(**db_config)

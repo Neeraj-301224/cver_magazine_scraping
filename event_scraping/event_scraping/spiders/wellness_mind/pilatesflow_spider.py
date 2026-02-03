@@ -13,11 +13,20 @@ class PilatesFlowSpider(BaseSpider):
     """
     name = "pilatesflow"
     category = "wellness_mind"
+    wellness_subcategories = ["Mindfulness", "Yoga and Pilates"]
     site_name = "pilatesflow"
     allowed_domains = ["pilatesflow.uk"]
     start_urls = [
         "https://pilatesflow.uk/workshops"
     ]
+    
+    CATEGORY_KEYWORDS = {
+        'Wellness & Mind': {
+            'Mindfulness': ['mindfulness', 'meditation', 'mindful', 'mindfulness course', 'meditation retreat', 'mindfulness retreat'],
+            'Yoga': ['yoga', 'asana', 'vinyasa', 'yoga retreat', 'yoga class', 'yoga workshop', 'yoga course'],
+            'Pilates': ['pilates', 'reformer', 'mat pilates', 'pilates class', 'pilates workshop', 'pilates course']
+        }
+    }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -160,8 +169,14 @@ class PilatesFlowSpider(BaseSpider):
                         else:
                             event_item['short_description'] = None
                         
-                        event_item['category'] = "Wellness & Mind"
-                        event_item['subcategory'] = "Pilates"
+                        # Category from title/description
+                        ev_title = event_data.get('title', title)
+                        ev_desc = event_data.get('description', '')
+                        event_categories = self.get_event_categories(ev_title, [ev_desc] if ev_desc else []) if ev_title else []
+                        event_item['categories'] = event_categories
+                        ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+                        event_item['category'] = ec
+                        event_item['subcategory'] = es
                         
                         # Build event_data for database check before geocoding
                         geocode_event_data = {
@@ -264,9 +279,13 @@ class PilatesFlowSpider(BaseSpider):
                     item['short_description'] = None
                 
                 # Set item fields
+                # Category from title/description
+                event_categories = self.get_event_categories(title, [description] if description else []) if title else []
+                item['categories'] = event_categories
+                ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+                item['category'] = ec
+                item['subcategory'] = es
                 item['name'] = self.clean_text(title) if title else None
-                item['category'] = "Wellness & Mind"
-                item['subcategory'] = "Pilates"
                 item['raw'] = {
                     'title': title,
                     'date': raw_date,
@@ -375,14 +394,18 @@ class PilatesFlowSpider(BaseSpider):
             if len(short_description) > 200:
                 short_description = short_description[:200].rsplit(' ', 1)[0] + '...'
         
+        # Category from title/description
+        event_categories = self.get_event_categories(title, desc_parts or []) if title else []
+        item['categories'] = event_categories
+        ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+        item['category'] = ec
+        item['subcategory'] = es
         item['name'] = self.clean_text(title) if title else None
         item['date'] = date
         item['raw_date'] = raw_date
         item['short_description'] = self.clean_text(short_description) if short_description else None
         item['coordinates'] = coords
         item['address'] = address
-        item['category'] = "Wellness & Mind"
-        item['subcategory'] = "Pilates"
         item['raw'] = {
             'title': title,
             'date': raw_date,
@@ -448,14 +471,18 @@ class PilatesFlowSpider(BaseSpider):
             
             short_description = desc[:200] + '...' if len(desc) > 200 else desc
             
+            # Category from title/description
+            event_categories = self.get_event_categories(title, [desc] if desc else []) if title else []
+            item['categories'] = event_categories
+            ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+            item['category'] = ec
+            item['subcategory'] = es
             item['name'] = self.clean_text(title) if title else None
             item['date'] = date
             item['raw_date'] = raw_date
             item['short_description'] = self.clean_text(short_description) if short_description else None
             item['coordinates'] = coords
             item['address'] = address
-            item['category'] = "Wellness & Mind"
-            item['subcategory'] = "Pilates"
             item['raw'] = {
                 'title': title,
                 'date': raw_date,

@@ -1,5 +1,5 @@
 """
-Insert event data into WordPress database (zuzl_posts and zuzl_postmeta).
+Insert event data into WordPress database (wp_posts and wp_postmeta).
 Processes all JSON files from scraped_data folder and checks for duplicates.
 """
 import json
@@ -54,7 +54,7 @@ def event_exists(event):
         # Only check for 'publish' status (exclude trashed posts)
         # First, try to find by URL (stored in postmeta _event_url or in post_content)
         if url:
-            # Check if URL is stored in postmeta (join with zuzl_posts to check status)
+            # Check if URL is stored in postmeta (join with wp_posts to check status)
             url_check_sql = """
             SELECT pm.post_id FROM zuzl_postmeta pm
             JOIN zuzl_posts p ON pm.post_id = p.ID
@@ -124,7 +124,7 @@ def event_exists(event):
 
 
 def get_term_id_by_name(cursor, category_name, subcategory_name=None):
-    """Get term_id from zuzl_terms table based on category or subcategory name.
+    """Get term_id from wp_terms table based on category or subcategory name.
     
     Tries subcategory first, then falls back to category name.
     Compares against a list of valid categories using LIKE operator, then queries database.
@@ -140,7 +140,7 @@ def get_term_id_by_name(cursor, category_name, subcategory_name=None):
     if not cursor:
         return None
     
-    # List of valid category names from zuzl_terms
+    # List of valid category names from wp_terms
     valid_categories = [
         'Charity Events',
         'Crossfit',
@@ -267,7 +267,7 @@ def insert_event(event):
         # Create slug from name
         slug = name.lower().replace(' ', '-').replace(':', '').replace('&', 'and')[:200]
         
-        # Insert into zuzl_posts
+        # Insert into wp_posts
         post_sql = """
         INSERT INTO zuzl_posts (
             post_author, post_date, post_date_gmt, post_content, post_title,
@@ -335,33 +335,55 @@ def insert_event(event):
         
         print(f"Inserted {len(meta_entries)} meta entries for post {post_id}")
         
-        # Insert category relationship in zuzl_term_relationships
-        # Get category_term_id from zuzl_terms based on category/subcategory name
-        category = event.get('category', '')
-        subcategory = event.get('subcategory', '')
+        # Build list of (category, subcategory) for term relationships
+        # Support multiple categories (e.g. Charity Events + Running) via event['categories']
+        categories_raw = event.get('categories')
+        if categories_raw and isinstance(categories_raw, list) and len(categories_raw) > 0:
+            # Each element may be (cat, subcat) tuple or dict with category/subcategory keys
+            category_pairs = []
+            for c in categories_raw:
+                if isinstance(c, (list, tuple)) and len(c) >= 2:
+                    category_pairs.append((c[0], c[1]))
+                elif isinstance(c, dict):
+                    category_pairs.append((c.get('category', ''), c.get('subcategory', '')))
+            if not category_pairs:
+                category_pairs = [(event.get('category', ''), event.get('subcategory', ''))]
+        else:
+            category_pairs = [(event.get('category', ''), event.get('subcategory', ''))]
         
-        category_term_id = get_term_id_by_name(cursor, category, subcategory)
-        
-        if category_term_id:
-            # Get term_taxonomy_id from zuzl_term_taxonomy
-            taxonomy_query = "SELECT term_taxonomy_id FROM zuzl_term_taxonomy WHERE term_id = %s"
+        # Insert category relationship(s) in wp_term_relationships (one per category, no duplicate term_taxonomy_id per post)
+        taxonomy_query = "SELECT term_taxonomy_id FROM zuzl_term_taxonomy WHERE term_id = %s"
+        relationship_exists_sql = """
+        SELECT 1 FROM zuzl_term_relationships WHERE object_id = %s AND term_taxonomy_id = %s LIMIT 1
+        """
+        relationship_sql = """
+        INSERT INTO zuzl_term_relationships (object_id, term_taxonomy_id, term_order)
+        VALUES (%s, %s, %s)
+        """
+        inserted_term_ids = set()
+        for category, subcategory in category_pairs:
+            if not category and not subcategory:
+                continue
+            category_term_id = get_term_id_by_name(cursor, category, subcategory)
+            if not category_term_id or category_term_id in inserted_term_ids:
+                if not category_term_id:
+                    print(f"Warning: Could not find term_id for category='{category}', subcategory='{subcategory}'.")
+                continue
             cursor.execute(taxonomy_query, (category_term_id,))
             taxonomy_result = cursor.fetchone()
-            
             if taxonomy_result:
                 term_taxonomy_id = taxonomy_result[0]
-                
-                # Insert into zuzl_term_relationships
-                relationship_sql = """
-                INSERT INTO zuzl_term_relationships (object_id, term_taxonomy_id, term_order)
-                VALUES (%s, %s, %s)
-                """
+                # Skip if this (post_id, term_taxonomy_id) already exists (avoid duplicate category links)
+                cursor.execute(relationship_exists_sql, (post_id, term_taxonomy_id))
+                if cursor.fetchone():
+                    print(f"  Skipping duplicate category link: post_id={post_id}, term_taxonomy_id={term_taxonomy_id} (category={category}, subcategory={subcategory})")
+                    inserted_term_ids.add(category_term_id)
+                    continue
                 cursor.execute(relationship_sql, (post_id, term_taxonomy_id, 0))
+                inserted_term_ids.add(category_term_id)
                 print(f"Inserted category relationship: post_id={post_id}, term_taxonomy_id={term_taxonomy_id} (term_id={category_term_id}, category={category}, subcategory={subcategory})")
             else:
                 print(f"Warning: Could not find term_taxonomy_id for term_id {category_term_id} (category={category}, subcategory={subcategory})")
-        else:
-            print(f"Warning: Could not find term_id for category='{category}', subcategory='{subcategory}'. Event inserted without category relationship.")
         
         connection.commit()
         cursor.close()

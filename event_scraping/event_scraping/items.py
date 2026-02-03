@@ -19,5 +19,6 @@ class EventScrapingItem(scrapy.Item):
     # Additional metadata
     category = scrapy.Field()  # Main category (e.g., "Running", "Cycling", "Swimming")
     subcategory = scrapy.Field()  # Subcategory (e.g., "Road running", "Trail running", "Triathlon")
+    categories = scrapy.Field()  # Optional: list of (category, subcategory) for multiple term assignment (e.g. Charity + Running)
     site = scrapy.Field()
     raw = scrapy.Field()  # raw dictionary of scraped values for debugging

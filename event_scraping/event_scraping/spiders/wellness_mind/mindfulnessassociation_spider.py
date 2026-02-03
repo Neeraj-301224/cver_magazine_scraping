@@ -11,11 +11,18 @@ class MindfulnessAssociationSpider(BaseSpider):
     """
     name = "mindfulnessassociation"
     category = "wellness_mind"
+    wellness_subcategories = ["Mindfulness"]
     site_name = "mindfulnessassociation"
     allowed_domains = ["mindfulnessassociation.net"]
     start_urls = [
         "https://www.mindfulnessassociation.net/mindfulness-courses/all-courses-and-retreats/"
     ]
+    
+    CATEGORY_KEYWORDS = {
+        'Wellness & Mind': {
+            'Mindfulness': ['mindfulness', 'meditation', 'mindful', 'mindfulness course', 'meditation retreat', 'mindfulness retreat'],
+                }
+    }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -169,14 +176,18 @@ class MindfulnessAssociationSpider(BaseSpider):
             if len(short_description) > 200:
                 short_description = short_description[:200].rsplit(' ', 1)[0] + '...'
         
+        # Category from title/description
+        event_categories = self.get_event_categories(title, desc_parts or []) if title else []
+        item['categories'] = event_categories
+        ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Mindfulness")
+        item['category'] = ec
+        item['subcategory'] = es
         item['name'] = self.clean_text(title) if title else None
         item['date'] = date
         item['raw_date'] = raw_date
         item['short_description'] = self.clean_text(short_description) if short_description else None
         item['coordinates'] = coords
         item['address'] = address
-        item['category'] = "Wellness & Mind"
-        item['subcategory'] = "Mindfulness"
         item['raw'] = {
             'title': title,
             'date': raw_date,
@@ -268,14 +279,18 @@ class MindfulnessAssociationSpider(BaseSpider):
             
             short_description = desc[:200] + '...' if len(desc) > 200 else desc
             
+            # Category from title/description
+            event_categories = self.get_event_categories(title, [desc] if desc else []) if title else []
+            item['categories'] = event_categories
+            ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Mindfulness")
+            item['category'] = ec
+            item['subcategory'] = es
             item['name'] = self.clean_text(title) if title else None
             item['date'] = date
             item['raw_date'] = raw_date
             item['short_description'] = self.clean_text(short_description) if short_description else None
             item['coordinates'] = coords
             item['address'] = address
-            item['category'] = "Wellness & Mind"
-            item['subcategory'] = "Mindfulness"
             item['raw'] = {
                 'title': title,
                 'date': raw_date,

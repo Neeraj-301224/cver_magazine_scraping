@@ -26,6 +26,7 @@ from ..utils.common import (
     remove_location_text as remove_location_text_util,
     convert_date_format as convert_date_format_util,
     get_event_category as get_event_category_util,
+    get_all_matching_categories as get_all_matching_categories_util,
     check_event_exists_in_db,
     validate_uk_coordinates
 )
@@ -459,32 +460,72 @@ class BaseSpider(scrapy.Spider):
         
         Returns (category, subcategory) tuple or (None, None).
         """
-        # All community_social spiders should be categorized as "Charity Events"
+        categories = self.get_event_categories(title, description_parts)
+        if categories:
+            return categories[0][0], categories[0][1]
+        return None, None
+
+    def get_event_categories(self, title, description_parts):
+        """Return a list of (category, subcategory) for multi-category assignment.
+        
+        For community_social spiders: always includes "Charity Events", plus any
+        activity-based categories (Running, Swimming, Cycling, etc.) from keyword match.
+        For wellness_mind spiders: static. Yoga with Manon: only "Yoga and Pilates".
+        Other 5 (mindfulnessassociation, mindfulnessuk, mindspace, pilatesflow, sharphamtrust):
+        both "Mindfulness" and "Yoga and Pilates" (no keyword matching).
+        For fitness_training (running events) spiders: title/name-based only - swim/swimming → Swimming,
+        bike/ride → Cycling, else Running Events (no CATEGORY_KEYWORDS).
+        For other spiders: returns a single (category, subcategory) in a list.
+        
+        Returns list of (category, subcategory) tuples.
+        """
         if hasattr(self, 'category') and self.category == "community_social":
-            # Still determine subcategory based on event content for better categorization
             category_keywords = getattr(self, 'CATEGORY_KEYWORDS', None)
+            result = [("Charity Events", "Charity Events")]
             try:
-                _, subcategory = get_event_category_util(title, description_parts, category_keywords)
-                # Return "Charity Events" as category, but keep the subcategory if found
-                if subcategory:
-                    self.logger.debug(f"Event categorized as: Charity Events -> {subcategory}")
-                    return "Charity Events", subcategory
-                else:
-                    return "Charity Events", "General"
+                activity_matches = get_all_matching_categories_util(
+                    title, description_parts, category_keywords
+                )
+                for cat, subcat in activity_matches:
+                    pair = (cat, subcat)
+                    if pair not in [(c, s) for c, s in result]:
+                        result.append(pair)
+                if len(result) > 1:
+                    self.logger.debug(
+                        f"Event categories: Charity Events + {[c for c, s in result[1:]]}"
+                    )
             except Exception as e:
-                self.log_error(f"Error categorizing event: {e}", context={'title': title[:100]})
-                return "Charity Events", "General"
-        
-        # For other spiders, use normal keyword-based categorization
+                self.log_error(f"Error getting event categories: {e}", context={'title': (title or '')[:100]})
+            return result
+
+        if hasattr(self, 'category') and self.category == "wellness_mind":
+            # Yoga with Manon: only Yoga and Pilates. Other 5 (mindfulnessassociation, mindfulnessuk, mindspace, pilatesflow, sharphamtrust): both Mindfulness and Yoga and Pilates.
+            wellness_subcategories = getattr(self, 'wellness_subcategories', None)
+            if wellness_subcategories and isinstance(wellness_subcategories, list):
+                return [("Wellness & Mind", s) for s in wellness_subcategories if s]
+            default_sub = getattr(self, 'wellness_subcategory', 'Wellness & Mind')
+            return [("Wellness & Mind", default_sub)]
+
+        if hasattr(self, 'category') and self.category == "fitness_training":
+            # Simple title/name-based category for running events spiders: swim/swimming → Swimming, bike/ride → Cycling, else Running Events
+            text = (title or "") + " "
+            if description_parts:
+                text += " ".join(str(p) for p in description_parts) if isinstance(description_parts, list) else str(description_parts)
+            text_lower = text.lower()
+            if "swim" in text_lower or "swimming" in text_lower:
+                return [("Swimming", "Swimming")]
+            if "bike" in text_lower or "ride" in text_lower:
+                return [("Cycling", "Cycling")]
+            return [("Running Events", "Running Events")]
+
+        # Non-community_social / non-wellness_mind / non-fitness_training: single category via util (no recursion)
         category_keywords = getattr(self, 'CATEGORY_KEYWORDS', None)
-        
         try:
-            category, subcategory = get_event_category_util(title, description_parts, category_keywords)
-            
+            category, subcategory = get_event_category_util(
+                title, description_parts, category_keywords
+            )
             if category and subcategory:
-                self.logger.debug(f"Event categorized as: {category} -> {subcategory}")
-            
-            return category, subcategory
+                return [(category, subcategory)]
         except Exception as e:
-            self.log_error(f"Error categorizing event: {e}", context={'title': title[:100]})
-            return None, None
+            self.log_error(f"Error categorizing event: {e}", context={'title': (title or '')[:100]})
+        return []

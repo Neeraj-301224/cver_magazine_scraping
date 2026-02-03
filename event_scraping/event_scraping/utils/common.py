@@ -342,6 +342,55 @@ def get_event_category(title, description_parts, category_keywords=None):
         return None, None
 
 
+def get_all_matching_categories(title, description_parts, category_keywords=None):
+    """Return all (category, subcategory) pairs that match the event content.
+    
+    Used for charity/community_social events so they can be tagged with
+    both "Charity Events" and activity-based categories (e.g. Running, Swimming).
+    
+    Args:
+        title (str): Event title
+        description_parts (list or str): Event description parts
+        category_keywords (dict, optional): Same format as get_event_category.
+        
+    Returns:
+        list: List of (category, subcategory) tuples, no duplicates, order preserved.
+    """
+    if not category_keywords or not title:
+        return []
+    
+    try:
+        full_text = title.lower()
+        if description_parts:
+            if isinstance(description_parts, list):
+                full_text += " " + " ".join(str(p).lower() for p in description_parts)
+            else:
+                full_text += " " + str(description_parts).lower()
+        
+        # One (category, subcategory) per category_group – first match wins (avoids e.g. Running twice)
+        # Use word-boundary matching so "cross" doesn't match inside "across", "tri" not in "intriguing"
+        seen_groups = set()
+        result = []
+        for category_group, subcategories in category_keywords.items():
+            if category_group in seen_groups:
+                continue
+            for subcategory, keywords in subcategories.items():
+                for keyword in keywords:
+                    kw = keyword.lower().strip()
+                    if not kw:
+                        continue
+                    pattern = r'\b' + re.escape(kw) + r'\b'
+                    if re.search(pattern, full_text):
+                        result.append((category_group, subcategory))
+                        seen_groups.add(category_group)
+                        break
+                if category_group in seen_groups:
+                    break
+        return result
+    except Exception:
+        return []
+
+
 def validate_uk_coordinates(coords):
     """Validate that coordinates are valid UK coordinates.
     

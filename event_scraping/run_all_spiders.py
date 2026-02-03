@@ -4,7 +4,7 @@ Master script to run ALL spiders sequentially, then process and insert events.
 This script:
 1. Runs all spiders from all categories one by one:
    - Community & Social: bhf, eventbrite, gosh, macmillan
-   - Fitness & Training: findarace, letsdothis, runguides, runthrough, timeoutdoors, ukrunningevents
+   - Fitness & Training: findarace, letsdothis, runguides, runthrough, teamaretas, timeoutdoors, ukrunningevents
    - Wellness & Mind: mindfulnessassociation, mindfulnessuk, mindspace, pilatesflow, sharphamtrust, yogawithmanon
 2. After all spiders complete, runs insert_event.py to process and insert events
 
@@ -39,23 +39,24 @@ def run_all_spiders():
     spiders = [
         # Community & Social
         "bhf",
-        ##"eventbrite",
-        ##"gosh",
-        ##"macmillan",
+        "eventbrite",
+        "gosh",
+        "macmillan",
         # Fitness & Training
-        ##"findarace",
-        ##"letsdothis",
-        ##"runguides",
-        ##"runthrough",
-        ##"timeoutdoors",
-        ##"ukrunningevents",
+        "findarace",
+        "letsdothis",
+        "runguides",
+        "runthrough", 
+        #"teamaretas",
+        "timeoutdoors",
+        "ukrunningevents",
         # Wellness & Mind
-        ##"mindfulnessassociation",
-        ##"mindfulnessuk",
-        ##"mindspace",
-        ##"pilatesflow",
-        ##"sharphamtrust",
-        ##"yogawithmanon",
+        "mindfulnessassociation",
+        "mindfulnessuk",
+        "mindspace",
+        "pilatesflow",
+        "sharphamtrust",
+        "yogawithmanon",
     ]
     
     print("=" * 80)
@@ -159,7 +160,7 @@ def main():
         print("=" * 80)
         print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         
-        insert_events()
+        #insert_events()
         
         # Final summary
         end_time = datetime.now()

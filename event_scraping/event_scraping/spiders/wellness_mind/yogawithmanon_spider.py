@@ -13,11 +13,20 @@ class YogaWithManonSpider(BaseSpider):
     """
     name = "yogawithmanon"
     category = "wellness_mind"
+    wellness_subcategory = "Yoga and Pilates"
     site_name = "yogawithmanon"
     allowed_domains = ["yogawithmanon.co.uk"]
     start_urls = [
         "https://yogawithmanon.co.uk/retreats/"
     ]
+    
+    CATEGORY_KEYWORDS = {
+        'Wellness & Mind': {
+            'Mindfulness': ['mindfulness', 'meditation', 'mindful', 'mindfulness course', 'meditation retreat', 'mindfulness retreat'],
+            'Yoga': ['yoga', 'asana', 'vinyasa', 'yoga retreat', 'yoga class', 'yoga workshop', 'yoga course'],
+            'Pilates': ['pilates', 'reformer', 'mat pilates', 'pilates class', 'pilates workshop', 'pilates course']
+        }
+    }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -177,14 +186,19 @@ class YogaWithManonSpider(BaseSpider):
                 short_description = short_description[:200].rsplit(' ', 1)[0] + '...'
         
         # Set item fields
+        # Category from title/description (Wellness & Mind + Yoga/Mindfulness/Pilates)
+        event_categories = self.get_event_categories(title, desc_parts or []) if title else []
+        item['categories'] = event_categories
+        event_category, event_subcategory = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategory)
+        item['category'] = event_category
+        item['subcategory'] = event_subcategory
+        
         item['name'] = self.clean_text(title) if title else None
         item['date'] = date
         item['raw_date'] = raw_date
         item['short_description'] = self.clean_text(short_description) if short_description else None
         item['coordinates'] = coords
         item['address'] = address
-        item['category'] = "Wellness & Mind"
-        item['subcategory'] = "Yoga"
         item['raw'] = {
             'title': title,
             'date': raw_date,
@@ -260,14 +274,19 @@ class YogaWithManonSpider(BaseSpider):
             # Short description
             short_description = desc[:200] + '...' if len(desc) > 200 else desc
             
+            # Category from title/description
+            event_categories = self.get_event_categories(title, [desc] if desc else []) if title else []
+            item['categories'] = event_categories
+            event_category, event_subcategory = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategory)
+            item['category'] = event_category
+            item['subcategory'] = event_subcategory
+            
             item['name'] = self.clean_text(title) if title else None
             item['date'] = date
             item['raw_date'] = raw_date
             item['short_description'] = self.clean_text(short_description) if short_description else None
             item['coordinates'] = coords
             item['address'] = address
-            item['category'] = "Wellness & Mind"
-            item['subcategory'] = "Yoga"
             item['raw'] = {
                 'title': title,
                 'date': raw_date,

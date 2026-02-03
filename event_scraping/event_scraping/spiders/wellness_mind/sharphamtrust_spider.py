@@ -16,11 +16,18 @@ class SharphamTrustSpider(BaseSpider):
     """
     name = "sharphamtrust"
     category = "wellness_mind"
+    wellness_subcategories = ["Mindfulness"]
     site_name = "sharphamtrust"
     allowed_domains = ["sharphamtrust.org"]
     start_urls = [
         "https://www.sharphamtrust.org/whatson"
     ]
+    
+    CATEGORY_KEYWORDS = {
+        'Wellness & Mind': {
+            'Mindfulness': ['mindfulness', 'meditation', 'mindful', 'mindfulness course', 'meditation retreat', 'mindfulness retreat'],
+          }
+    }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -379,8 +386,12 @@ class SharphamTrustSpider(BaseSpider):
             # Ensure UK is present in address
             address = self.ensure_uk_in_address(address)
             item['address'] = address
-            item['category'] = "Wellness & Mind"
-            item['subcategory'] = "Mindfulness"
+            # Category from title/description
+            event_categories = self.get_event_categories(title, [description] if description else []) if title else []
+            item['categories'] = event_categories
+            ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+            item['category'] = ec
+            item['subcategory'] = es
             item['raw'] = {
                 'title': title,
                 'date': raw_date,
@@ -533,8 +544,12 @@ class SharphamTrustSpider(BaseSpider):
                 # Ensure UK is present in address
                 address = self.ensure_uk_in_address(address)
                 item['address'] = address
-                item['category'] = "Wellness & Mind"
-                item['subcategory'] = "Mindfulness"
+                # Category from title/description
+                event_categories = self.get_event_categories(title, [description] if description else []) if title else []
+                item['categories'] = event_categories
+                ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+                item['category'] = ec
+                item['subcategory'] = es
                 item['raw'] = {
                     'title': title,
                     'date': date_match,
@@ -663,8 +678,12 @@ class SharphamTrustSpider(BaseSpider):
                     # Ensure UK is present in address
                     address = self.ensure_uk_in_address(address)
                     item['address'] = address
-                    item['category'] = "Wellness & Mind"
-                    item['subcategory'] = "Mindfulness"
+                    # Category from title/description
+                    event_categories = self.get_event_categories(title, [description] if description else []) if title else []
+                    item['categories'] = event_categories
+                    ec, es = (event_categories[0][0], event_categories[0][1]) if event_categories else ("Wellness & Mind", self.wellness_subcategories[0] if getattr(self, "wellness_subcategories", None) else "Yoga and Pilates")
+                    item['category'] = ec
+                    item['subcategory'] = es
                     item['raw'] = {
                         'title': title,
                         'date': date_match,

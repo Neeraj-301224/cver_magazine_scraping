@@ -60,9 +60,9 @@ DOWNLOAD_DELAY = 1
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "event_scraping.pipelines.EventScrapingPipeline": 300,
-#}
+ITEM_PIPELINES = {
+    "event_scraping.pipelines.EventScrapingPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -120,6 +120,10 @@ DB_NAME = 'cveropfnwf_wp7fbf'  # WordPress database name
 DB_USER = 'cveropfnwf_998'  # Database username
 DB_PASSWORD = '95RnJXcDDkmV16s7VUav'  # Database password
 DB_PORT = 3306  # Database port
-
+#DB_HOST = 'localhost'
+#DB_NAME = 'local'  # WordPress database name
+#DB_USER = 'root'  # Database username
+#DB_PASSWORD = 'root'  # Database password
+#DB_PORT = 10017  # Database port
 # Backup retention settings
 BACKUP_RETENTION_DAYS = 7  # Number of days to keep backup files (older files will be deleted)
