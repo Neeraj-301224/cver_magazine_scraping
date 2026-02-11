@@ -1,0 +1,38 @@
+[
+{
+  "category": "Charity Events",
+  "site": "bhf",
+  "url": "https://www.bhf.org.uk/how-you-can-help/events/swims/bournemouth-pier-to-pier-swim",
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Swimming",
+      "Open Water Swims"
+    ]
+  ],
+  "name": "Bournemouth Pier to Pier Swim 2026",
+  "date": "06/27/2026",
+  "raw_date": "Saturday 27 June 2026",
+  "short_description": "Pay a £50 registration fee for Bournemouth Pier to Pier Swim 2026 and take on a £300 minimum fundraising pledge",
+  "coordinates": {
+    "lat": 51.445605,
+    "lon": 0.370095
+  },
+  "address": "Boscombe Pier to Bournemouth Pier",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Bournemouth Pier to Pier Swim 2026",
+    "date": "06/27/2026",
+    "desc_preview": "Pay a £50 registration fee for Bournemouth Pier to Pier Swim 2026 and take on a £300 minimum fundraising pledge",
+    "full_description": "Pay a £50 registration fee for Bournemouth Pier to Pier Swim 2026 and take on a £300 minimum fundraising pledge. There are currently six start times you can choose from: We recommend all participants to wear wetsuits. They will make it easier to stay afloat and keep warm. If youre an experienced open water swimmer and would prefer not to, you can fill out our wetsuit exemption form [email protected] before event day. All under 18s who take part in the Bournemouth Pier to Pier Swim must wear a...",
+    "address": "Boscombe Pier to Bournemouth Pier",
+    "coordinates": {
+      "lat": 51.445605,
+      "lon": 0.370095
+    }
+  }
+}
+]
