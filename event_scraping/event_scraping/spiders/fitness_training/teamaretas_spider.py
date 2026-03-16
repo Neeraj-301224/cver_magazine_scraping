@@ -525,10 +525,16 @@ class TeamAretasSpider(BaseSpider):
             if geocoded and not coords:
                 coords = geocoded
 
-        # Team Aretas only: every event goes to BOTH Hyrox and CrossFit (no keyword comparison).
-        event_category = "Hyrox"
-        event_subcategory = "Hyrox"
-        event_categories_list = [("Hyrox", "Hyrox"), ("Crossfit", "Crossfit")]
+        # Team Aretas: if event has "Hyrox" → Hyrox category, else → Crossfit category.
+        event_text = f"{(title or '')} {(short_description or '')}".lower()
+        if "hyrox" in event_text:
+            event_category = "Hyrox"
+            event_subcategory = "Hyrox"
+            event_categories_list = [("Hyrox", "Hyrox")]
+        else:
+            event_category = "Crossfit"
+            event_subcategory = "Crossfit"
+            event_categories_list = [("Crossfit", "Crossfit")]
 
         item_key = f"{title}_{date}_{response.url}"
         if item_key in self.seen_events:

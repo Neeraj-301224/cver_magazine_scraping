@@ -1,5 +1,5 @@
 """
-Insert event data into WordPress database (wp_posts and wp_postmeta).
+Insert event data into WordPress database (zuzl_posts and zuzl_postmeta).
 Processes all JSON files from scraped_data folder and checks for duplicates.
 """
 import json
@@ -54,7 +54,7 @@ def event_exists(event):
         # Only check for 'publish' status (exclude trashed posts)
         # First, try to find by URL (stored in postmeta _event_url or in post_content)
         if url:
-            # Check if URL is stored in postmeta (join with wp_posts to check status)
+            # Check if URL is stored in postmeta (join with zuzl_posts to check status)
             url_check_sql = """
             SELECT pm.post_id FROM zuzl_postmeta pm
             JOIN zuzl_posts p ON pm.post_id = p.ID
@@ -124,7 +124,7 @@ def event_exists(event):
 
 
 def get_term_id_by_name(cursor, category_name, subcategory_name=None):
-    """Get term_id from wp_terms table based on category or subcategory name.
+    """Get term_id from zuzl_terms table based on category or subcategory name.
     
     Tries subcategory first, then falls back to category name.
     Compares against a list of valid categories using LIKE operator, then queries database.
@@ -140,10 +140,11 @@ def get_term_id_by_name(cursor, category_name, subcategory_name=None):
     if not cursor:
         return None
     
-    # List of valid category names from wp_terms
+    # List of valid category names from zuzl_terms
     valid_categories = [
         'Charity Events',
         'Crossfit',
+        'Hyrox',
         'Endurance events',
         'Family Fitness',
         'Local Club Events',
@@ -215,21 +216,22 @@ def serialize_location_meta(event):
     raw_date = event.get('raw_date', '')
     description = event.get('short_description', '')
     url = event.get('url', '')
-    
+
     # Build text parts
     text_parts = []
-    if name and raw_date:
-        text_parts.append(f"{name} {raw_date}")
-    elif name:
-        text_parts.append(name)
-    
+    #if name:
+        #text_parts.append(f"<strong>{name}</strong>")
+
+    if raw_date:
+        text_parts.append(f"<span class='event-date'>{raw_date}</span>")
+
     if description:
-        text_parts.append(description)
-    
+        text_parts.append(f"<span class='event-description'>{description}</span>")
+
     if url:
         text_parts.append(f'<a href="{url}">Find out more</a>')
-    
-    # Join with <br><br> and ensure no actual newline characters
+
+    # Join with spacing
     text = '<br><br>'.join(text_parts)
     text = text.replace('\n', '<br>').replace('\r', '')
     
@@ -253,6 +255,13 @@ def insert_event(event):
         description = event.get('short_description', '')
         full_description = event.get('raw', {}).get('full_description', description)
         url = event.get('url', '')
+        raw_date = (event.get('raw_date') or '').strip()
+        
+        # Do not insert if raw_date is null or blank
+        if not raw_date:
+            cursor.close()
+            connection.close()
+            return None
         
         # Parse date
         date_str = event.get('date', '')
@@ -267,7 +276,7 @@ def insert_event(event):
         # Create slug from name
         slug = name.lower().replace(' ', '-').replace(':', '').replace('&', 'and')[:200]
         
-        # Insert into wp_posts
+        # Insert into zuzl_posts
         post_sql = """
         INSERT INTO zuzl_posts (
             post_author, post_date, post_date_gmt, post_content, post_title,
@@ -351,7 +360,7 @@ def insert_event(event):
         else:
             category_pairs = [(event.get('category', ''), event.get('subcategory', ''))]
         
-        # Insert category relationship(s) in wp_term_relationships (one per category, no duplicate term_taxonomy_id per post)
+        # Insert category relationship(s) in zuzl_term_relationships (one per category, no duplicate term_taxonomy_id per post)
         taxonomy_query = "SELECT term_taxonomy_id FROM zuzl_term_taxonomy WHERE term_id = %s"
         relationship_exists_sql = """
         SELECT 1 FROM zuzl_term_relationships WHERE object_id = %s AND term_taxonomy_id = %s LIMIT 1
@@ -506,6 +515,7 @@ def main(json_folder=None):
     total_failed = 0
     total_duplicates = 0
     total_invalid_coords = 0
+    total_skipped_no_date = 0
     for json_file in json_files:
         print(f"\n📄 Processing file: {json_file.name}")
         print("-" * 80)
@@ -530,15 +540,28 @@ def main(json_folder=None):
             file_failed = 0
             file_duplicates = 0
             file_invalid_coords = 0
+            file_skipped_no_date = 0
             
             for i, event in enumerate(events, 1):
                 event_name = event.get('name', 'Unknown')[:50]
                 event_url = event.get('url', 'N/A')[:50]
                 
+                # Do not insert if raw_date is null or blank
+                raw_date = (event.get('raw_date') or '').strip()
+                if not raw_date:
+                    print(f"  [{i}/{num_events}] ⏭️  Skipping (no raw_date): {event_name}")
+                    file_skipped_no_date += 1
+                    total_skipped_no_date += 1
+                    continue
+                
                 # Check if event already exists
                 existing_post_id = event_exists(event)
                 if existing_post_id:
-                    print(f"  [{i}/{num_events}] ⏭️  Skipping duplicate: {event_name} (exists as post ID: {existing_post_id})")
+                    print(f"  [{i}/{num_events}] ⏭️  Duplicate: {event_name} (post ID: {existing_post_id})")
+                    # Ensure term/category relationships exist for this post (insert any missing)
+                    n = ensure_term_relationships_for_post(existing_post_id, event)
+                    if n > 0:
+                        print(f"      ✅ Inserted {n} missing category relationship(s) for duplicate post")
                     file_duplicates += 1
                     total_duplicates += 1
                     continue
@@ -568,6 +591,7 @@ def main(json_folder=None):
             print(f"\n  📊 File Summary for {json_file.name}:")
             print(f"     ✅ Successful: {file_successful}")
             print(f"     ⏭️  Duplicates: {file_duplicates}")
+            print(f"     ⏭️  Skipped (no raw_date): {file_skipped_no_date}")
             print(f"     ⚠️  Invalid coordinates: {file_invalid_coords}")
             print(f"     ❌ Failed: {file_failed}")
             
@@ -614,6 +638,7 @@ def main(json_folder=None):
     print(f"Total events found: {total_events}")
     print(f"✅ Successfully inserted: {total_successful}")
     print(f"⏭️  Duplicates skipped: {total_duplicates}")
+    print(f"⏭️  Skipped (no raw_date): {total_skipped_no_date}")
     print(f"⚠️  Invalid coordinates skipped: {total_invalid_coords}")
     print(f"❌ Failed: {total_failed}")
     print("=" * 80)
