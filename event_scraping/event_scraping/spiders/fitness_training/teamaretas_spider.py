@@ -3,6 +3,8 @@ import html
 import json
 import re
 import time
+from urllib.parse import urlencode
+
 import scrapy
 from scrapy import Selector
 from ..base_spider import BaseSpider
@@ -93,7 +95,11 @@ class TeamAretasSpider(BaseSpider):
     category = "fitness_training"
     site_name = "teamaretas"
     allowed_domains = ["team-aretas.com"]
-    start_urls = ["https://team-aretas.com/competitions"]
+    # Listing is loaded via JS/API; start_requests() hits the lazy API (see parse_lazy_api).
+    start_urls = []
+
+    LAZY_API = "https://team-aretas.com/api/competitions/competitions/lazy"
+    LAZY_PAGE_SIZE = 50
 
     # Hyrox and CrossFit only (matching this site's focus)
     CATEGORY_KEYWORDS = {
@@ -120,6 +126,78 @@ class TeamAretasSpider(BaseSpider):
         self.seen_urls = set()
         self.geocoding_cache = {}
         self.pages_visited = set()
+
+    def _lazy_api_url(self, offset, limit=None):
+        """Build URL for the competitions lazy-load API (same params as the site's React app)."""
+        if limit is None:
+            limit = self.LAZY_PAGE_SIZE
+        q = urlencode(
+            {
+                "section": "upcoming",
+                "limit": limit,
+                "offset": offset,
+            }
+        )
+        return f"{self.LAZY_API}?{q}"
+
+    def start_requests(self):
+        """Site shell has no /competitions/<id> in HTML; discover IDs via official API."""
+        yield scrapy.Request(
+            self._lazy_api_url(0),
+            callback=self.parse_lazy_api,
+            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+            errback=self.handle_error,
+            meta={"offset": 0, "limit": self.LAZY_PAGE_SIZE},
+            dont_filter=True,
+        )
+
+    def parse_lazy_api(self, response):
+        """Paginate lazy API and enqueue competition detail pages."""
+        try:
+            data = response.json()
+        except (ValueError, TypeError) as e:
+            self.logger.warning("parse_lazy_api: not JSON (%s): %s", response.url, e)
+            yield from self._fallback_listing_from_html()
+            return
+        comps = data.get("comps") or []
+        limit = response.meta.get("limit", self.LAZY_PAGE_SIZE)
+        offset = response.meta.get("offset", 0)
+        self.logger.info(
+            "Lazy API offset=%s: %s competition(s)",
+            offset,
+            len(comps),
+        )
+        for c in comps:
+            if not isinstance(c, dict):
+                continue
+            cid = c.get("id") or c.get("competition_id")
+            if not cid:
+                continue
+            url = f"https://team-aretas.com/competitions/{cid}"
+            if url in self.seen_urls:
+                continue
+            self.seen_urls.add(url)
+            yield response.follow(url, self.parse_event, errback=self.handle_error)
+        if len(comps) >= limit:
+            next_offset = offset + limit
+            yield scrapy.Request(
+                self._lazy_api_url(next_offset, limit),
+                callback=self.parse_lazy_api,
+                headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+                errback=self.handle_error,
+                meta={"offset": next_offset, "limit": limit},
+                dont_filter=True,
+            )
+
+    def _fallback_listing_from_html(self):
+        """If API fails, try legacy HTML/regex/Selenium (older site behaviour)."""
+        yield scrapy.Request(
+            "https://team-aretas.com/competitions",
+            callback=self.parse,
+            headers={"User-Agent": "Mozilla/5.0"},
+            errback=self.handle_error,
+            dont_filter=True,
+        )
 
     @staticmethod
     def _extract_competition_ids_from_json(obj):
