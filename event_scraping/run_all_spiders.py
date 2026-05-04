@@ -4,8 +4,8 @@ Master script to run ALL spiders sequentially, then process and insert events.
 This script:
 1. Runs all spiders from all categories one by one:
    - Community & Social: bhf, eventbrite, gosh, macmillan
-   - Fitness & Training: findarace, letsdothis, runguides, runthrough, teamaretas, timeoutdoors, ukrunningevents
-   - Wellness & Mind: mindfulnessassociation, mindfulnessuk, mindspace, pilatesflow, sharphamtrust, yogawithmanon
+   - Fitness & Training: findarace, letsdothis, runguides, runthrough, teamaretas, timeoutdoors, timeoutdoors_cycling_swim, ukrunningevents
+   - Wellness & Mind: eventbrite_yogapilates, mindfulnessassociation, mindfulnessuk, mindspace, pilatesflow, sharphamtrust, yogawithmanon
 2. After all spiders complete, runs insert_event.py to process and insert events
 
 Uses subprocess to run each spider in a separate process to avoid Twisted reactor conflicts.
@@ -46,15 +46,17 @@ def run_all_spiders():
         "findarace",
         "letsdothis",
         "runguides",
-        #"runthrough", 
+        "runthrough", 
         "teamaretas",       
         "timeoutdoors",
+        "timeoutdoors_cycling_swim",
         "ukrunningevents",
         ## Wellness & Mind
+        "eventbrite_yogapilates",
         "mindfulnessassociation",
         "mindfulnessuk",
         "mindspace",
-        #"pilatesflow",
+        "pilatesflow",
         "sharphamtrust",
         "yogawithmanon",
     ]
@@ -160,7 +162,7 @@ def main():
         print("=" * 80)
         print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         
-        #insert_events()
+        insert_events()
         
         # Final summary
         end_time = datetime.now()

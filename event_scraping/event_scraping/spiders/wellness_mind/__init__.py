@@ -5,4 +5,5 @@ from .mindfulnessuk_spider import MindfulnessUKSpider
 from .sharphamtrust_spider import SharphamTrustSpider
 from .mindfulnessassociation_spider import MindfulnessAssociationSpider
 from .mindspace_spider import MindspaceSpider
+from .eventbrite_yogapilates_spider import EventbriteYogaPilatesSpider
 

@@ -2,6 +2,7 @@ import scrapy
 import re
 from ..base_spider import BaseSpider
 from ...items import EventScrapingItem
+from ...utils.common import get_event_category as classify_event_by_keywords
 
 
 class TimeOutdoorsSpider(BaseSpider):
@@ -24,6 +25,24 @@ class TimeOutdoorsSpider(BaseSpider):
         "https://www.timeoutdoors.com/events/marathons",
         "https://www.timeoutdoors.com/events/ultra-runs",
     ]
+
+    # Charity hub pages whose outbound links we still crawl (other /charity/* hubs are skipped).
+    charity_listing_path_substrings = ("/charity/runs",)
+
+    # When classifying raw <a href> as a possible event URL (first loop in parse()).
+    url_event_indicators = [
+        "run",
+        "race",
+        "marathon",
+        "10k",
+        "5k",
+        "half",
+        "ultra",
+        "trail",
+        "triathlon",
+        "duathlon",
+        "swim",
+    ]
     
     # All categories and their keywords to include
     CATEGORY_KEYWORDS = {
@@ -42,9 +61,9 @@ class TimeOutdoorsSpider(BaseSpider):
         },
         'Cycling': {
             'Sportives': ['sportive', 'sportif', 'cycling sportive', 'bike sportive'],
-            'Time Trials': ['time trial', 'tt', 'cycling time trial', 'bike time trial'],
+            'Time Trials': ['time trial', 'cycling time trial', 'bike time trial'],
             'Road Races': ['road race', 'cycling race', 'bike race', 'road cycling'],
-            'Cyclocross': ['cyclocross', 'cx', 'cross', 'cyclo-cross'],
+            'Cyclocross': ['cyclocross', 'cx', 'cyclo-cross'],
             'Mountain Biking': ['mountain bike', 'mtb', 'mountain biking', 'off road cycling'],
             'Track Cycling': ['track cycling', 'velodrome', 'track race', 'track bike'],
             'Charity & Challenge Rides': ['charity ride', 'challenge ride', 'charity cycling', 'fundraising ride']
@@ -59,12 +78,12 @@ class TimeOutdoorsSpider(BaseSpider):
             'CrossFit Competitions': ['crossfit', 'cross fit', 'crossfit competition', 'crossfit games'],
             'Hyrox / DEKA FIT': ['hyrox', 'deka fit', 'deka', 'hyrox race', 'deka race'],
             'Obstacle Fitness Events': ['obstacle fitness', 'fitness obstacle', 'fitness challenge'],
-            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp', 'challenge']
+            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp']
         },
         'Multi-Discipline': {
-            'Triathlon': ['triathlon', 'tri', 'triathlete', 'triathlon race'],
-            'Duathlon': ['duathlon', 'du', 'duathlete', 'duathlon race'],
-            'Aquathlon': ['aquathlon', 'aqua', 'aquathlete', 'aquathlon race'],
+            'Triathlon': ['triathlon', 'triathlete', 'triathlon race'],
+            'Duathlon': ['duathlon', 'duathlete', 'duathlon race'],
+            'Aquathlon': ['aquathlon', 'aquathlete', 'aquathlon race'],
             'Adventure Races': ['adventure race', 'multi sport', 'multi-sport', 'adventure challenge']
         }
     }
@@ -74,7 +93,115 @@ class TimeOutdoorsSpider(BaseSpider):
     for category_group, subcategories in CATEGORY_KEYWORDS.items():
         for subcategory, keywords in subcategories.items():
             ALL_KEYWORDS.extend(keywords)
-    
+
+    # Copied repeatedly into #isPasted with real event prose — strip so JSON matches event copy only.
+    TIMEOUTDOORS_LEADING_PROMO_PHRASES = (
+        "More runs, rides, swims, walks and triathlons than any other site in the UK.",
+        "Got an event to list on the website?",
+        "The team adventure challenge that pushes you from dawn to dusk. Ride, hike and kayak to beat the sunset.",
+        "Challenge yourself and change lives at the same time.",
+        "Want to list your charity places, events and challenges on the website?",
+        "100s of activity days, weekends, trips, holidays, retreats and training camps.",
+        "Weekends, holidays, retreats and training camps for runners of all abilities.",
+        "The perfect way to see somewhere new.",
+        "Actionpacked adventures!",
+        "Open water adventures for those wanting to roam wide and free.",
+        "Walking weekends, holidays, retreats and adventures for rambers, walkers and hikers of all abilities.",
+        "Journey into some of the most spectacular locations on the planet.",
+        "Want to list your trip on the website?",
+        "Make new friends and get help with training.",
+        "From your local area to far flung corners of the world.",
+        "Event guides, gear advice, places to go and tips on wellbeing.",
+        "Log your achievements, plan whats next and socialise with friends and family.",
+    )
+    TIMEOUTDOORS_FOOTER_MARKERS = (
+        "A good nights sleep is an essential foundation",
+        "#FreeYourself",
+        "\u00a9 Copyright",
+        "\u00a9 copyright",
+        "TOD.com Limited",
+        "Sign up to our newsletter for new events, exclusive offers",
+        "We are a registered data controller with the ICO",
+        "\U0001f36a We use cookies",
+        "Please enter a valid email",
+        "Thanks please check your Inbox",
+    )
+
+    def _sanitize_timeoutdoors_description_text(self, text):
+        """Drop sitewide promos merged into #isPasted plus footer/newsletter/cookie blocks."""
+        if not text or not str(text).strip():
+            return text
+        text = re.sub(r"\s+", " ", str(text)).strip()
+        idxs = [text.find(m) for m in self.TIMEOUTDOORS_FOOTER_MARKERS if m and text.find(m) != -1]
+        if idxs:
+            text = text[: min(idxs)].rstrip()
+        max_passes = 80
+        for _ in range(max_passes):
+            stripped = False
+            for phrase in self.TIMEOUTDOORS_LEADING_PROMO_PHRASES:
+                if text.startswith(phrase):
+                    text = text[len(phrase) :].lstrip()
+                    if text.startswith((",", ".", ";")):
+                        text = text.lstrip(",.;").strip()
+                    stripped = True
+                    break
+            if not stripped:
+                break
+        return text.strip()
+
+    def _first_substantive_preview_sentence(self, text, min_len=45):
+        """Use first reasonably long sentence — avoids sitewide one-liners if any remain."""
+        if not text:
+            return None
+        for chunk in re.split(r"(?<=[.!?])\s+", text.strip()):
+            c = chunk.strip()
+            if len(c) >= min_len:
+                if len(c) > 200:
+                    return c[:200].rsplit(" ", 1)[0] + "..."
+                return c
+        if text.strip():
+            t = text.strip()
+            if len(t) > 200:
+                return t[:200].rsplit(" ", 1)[0] + "..."
+            return t
+        return None
+
+    def _extract_event_overview_description_parts(self, response):
+        """Text under Event Overview: primary source is element with id=\"overview\"."""
+        # 1) #overview (section / div used for Event Overview body)
+        root = response.css("#overview")
+        if root:
+            parts = root.css("*::text").getall()
+            parts = [p.strip() for p in parts if p and str(p).strip()]
+            if parts:
+                self.logger.debug("Description from #overview (%s parts)", len(parts))
+                return parts
+
+        parts = response.xpath('//*[@id="overview"]//text()[normalize-space()]').getall()
+        parts = [p.strip() for p in parts if p and str(p).strip()]
+        if parts:
+            self.logger.debug("Description from xpath @id=overview (%s parts)", len(parts))
+            return parts
+
+        # 2) First "Event Overview" heading, then nearest following #overview
+        for _hdr in response.xpath(
+            '//*[self::h2 or self::h3 or self::h4]'
+            '[contains(translate(normalize-space(string(.)), '
+            '"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "event overview")]'
+        ):
+            following = _hdr.xpath(
+                "./following::*[@id=\"overview\"][1]//text()[normalize-space()]"
+            ).getall()
+            following = [t.strip() for t in following if t and str(t).strip()]
+            if following:
+                self.logger.debug(
+                    "Description from Event Overview header + following #overview (%s parts)",
+                    len(following),
+                )
+                return following
+
+        return []
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.seen_events = set()  # Track seen events to avoid duplicates
@@ -120,15 +247,16 @@ class TimeOutdoorsSpider(BaseSpider):
                                         '/community', '/pacing', '/prizes', '/club', '/injury',
                                         '/tips', '/fundraising', '/events']  # Exclude the main listing page
                     
-                    # Allow /charity/runs but exclude other charity pages
-                    if '/charity/' in href and '/charity/runs' not in href:
+                    # Allow configured charity listing hubs; skip other charity pages
+                    if "/charity/" in href and not any(
+                        p in href for p in self.charity_listing_path_substrings
+                    ):
                         continue
-                    
+
                     # If it's an event URL and not excluded, it might be an event
                     if not any(excluded in href for excluded in excluded_patterns):
                         # Check if URL looks like an event slug (contains common race terms or is a specific event page)
-                        event_indicators = ['run', 'race', 'marathon', '10k', '5k', 'half', 'ultra', 
-                                          'trail', 'triathlon', 'duathlon', 'swim']
+                        event_indicators = self.url_event_indicators
                         if any(indicator in href.lower() for indicator in event_indicators) or '/event/' in href:
                             is_event_link = True
                 
@@ -239,45 +367,32 @@ class TimeOutdoorsSpider(BaseSpider):
             response.css('[class*="title"]::text').get()
         )
         
-        # Enhanced description extraction
-        # Description is in id "isPasted" under "event overview"
-        desc_parts = []
-        
-        # Try to find description in #isPasted
-        # First try to find it within an "event overview" section
-        # Look for element containing "event overview" text, then find #isPasted within it or after it
-        event_overview_section = response.xpath('//*[contains(translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "event overview") or contains(translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), "overview")]')
-        
-        # Look for #isPasted - try within event overview section first, then globally
-        is_pasted = None
-        if event_overview_section:
-            # Try to find #isPasted within or after the overview section
-            is_pasted = event_overview_section.xpath('.//*[@id="isPasted"] | following::*[@id="isPasted"]').css('*')
-        
-        # If not found in overview section, try globally
-        if not is_pasted:
-            is_pasted = response.css('#isPasted')
-        
-        if is_pasted:
-            # Get all text from #isPasted element
-            desc_parts = is_pasted.css('*::text').getall()
-            # Also get direct text from the element itself
-            direct_text = is_pasted.css('::text').getall()
-            if direct_text:
-                desc_parts = direct_text + desc_parts
-            # Filter out empty strings
-            desc_parts = [part.strip() for part in desc_parts if part.strip()]
-            self.logger.debug(f"Found description in #isPasted: {len(desc_parts)} text parts")
-        
-        # Fallback to general selectors if #isPasted not found
+        # Description: Event Overview body — element id=\"overview\" (see _extract_event_overview_description_parts)
+        desc_parts = self._extract_event_overview_description_parts(response)
+
+        # Legacy fallback if markup changes (avoid sitewide #isPasted mega-blocks when possible)
         if not desc_parts:
-            desc_parts = (
-                response.css('.description *::text, .event-description *::text, .content *::text').getall() or
-                response.css('article *::text, .event-details *::text').getall() or
-                response.css('p::text, .text::text').getall() or
-                response.css('[class*="description"] *::text').getall()
-            )
-        
+            is_pasted = response.css("#isPasted")
+            if is_pasted:
+                desc_parts = is_pasted.css("*::text").getall()
+                direct_text = is_pasted.css("::text").getall()
+                if direct_text:
+                    desc_parts = direct_text + desc_parts
+                desc_parts = [part.strip() for part in desc_parts if part.strip()]
+                self.logger.debug("Fallback description from #isPasted: %s parts", len(desc_parts))
+
+        if not desc_parts:
+            desc_parts = response.css(
+                "#overview *::text, [id=\"overview\"] *::text, "
+                ".event-overview *::text, [class*=\"event-overview\"] *::text"
+            ).getall()
+            desc_parts = [p.strip() for p in desc_parts if p and str(p).strip()]
+
+        if desc_parts:
+            merged = " ".join(p for p in desc_parts if p and str(p).strip())
+            cleaned = self._sanitize_timeoutdoors_description_text(merged)
+            desc_parts = [cleaned] if cleaned else []
+
         # Enhanced date extraction
         # Date is in class "tod-date badge-sm"
         date = None
@@ -338,13 +453,11 @@ class TimeOutdoorsSpider(BaseSpider):
             self.logger.info(f"Event does not match target race types - skipping: {title}")
             return
 
-        # Short description extraction
+        # Short description extraction (first line was always sitewide tagline before sanitise)
         short_description = None
         if desc_parts:
-            joined = '\n'.join(desc_parts).strip()
-            short_description = joined.split('\n')[0]
-            if len(short_description) > 200:
-                short_description = short_description[:200].rsplit(' ', 1)[0] + '...'
+            joined = " ".join(desc_parts).strip()
+            short_description = self._first_substantive_preview_sentence(joined)
 
         # Address extraction
         # Use specific xpath to get the first p tag in #collapseLocation/div
@@ -428,7 +541,7 @@ class TimeOutdoorsSpider(BaseSpider):
             'title': title,
             'date': date,
             'desc_preview': short_description,
-            'full_description': ' '.join(desc_parts) if desc_parts else None,
+            'full_description': desc_parts[0] if desc_parts else None,
             'address': address,
             'coordinates': coords,
         }
@@ -471,23 +584,10 @@ class TimeOutdoorsSpider(BaseSpider):
     
     def get_event_category(self, title, description_parts):
         """Determine the specific category and subcategory for an event."""
-        if not title:
-            return None, None
-        
-        # Combine title and description for analysis
-        full_text = title.lower()
-        if description_parts:
-            full_text += " " + " ".join(description_parts).lower()
-        
-        # Check each category group and subcategory
-        for category_group, subcategories in self.CATEGORY_KEYWORDS.items():
-            for subcategory, keywords in subcategories.items():
-                for keyword in keywords:
-                    if keyword.lower() in full_text:
-                        self.logger.debug(f"Event categorized as: {category_group} -> {subcategory}")
-                        return category_group, subcategory
-        
-        return "Other", "General"
+        cat, sub = classify_event_by_keywords(title, description_parts, self.CATEGORY_KEYWORDS)
+        if cat and sub:
+            self.logger.debug(f"Event categorized as: {cat} -> {sub}")
+        return cat, sub
 
     def remove_location_text(self, address):
         """Remove 'Location' text and similar prefixes from address."""

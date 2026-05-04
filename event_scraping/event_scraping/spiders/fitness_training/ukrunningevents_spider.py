@@ -2,6 +2,7 @@ import scrapy
 import re
 from ..base_spider import BaseSpider
 from ...items import EventScrapingItem
+from ...utils.common import get_event_category as classify_event_by_keywords
 
 
 class UKRunningEventsSpider(BaseSpider):
@@ -40,9 +41,9 @@ class UKRunningEventsSpider(BaseSpider):
         },
         'Cycling': {
             'Sportives': ['sportive', 'sportif', 'cycling sportive', 'bike sportive'],
-            'Time Trials': ['time trial', 'tt', 'cycling time trial', 'bike time trial'],
+            'Time Trials': ['time trial', 'cycling time trial', 'bike time trial'],
             'Road Races': ['road race', 'cycling race', 'bike race', 'road cycling'],
-            'Cyclocross': ['cyclocross', 'cx', 'cross', 'cyclo-cross'],
+            'Cyclocross': ['cyclocross', 'cx', 'cyclo-cross'],
             'Mountain Biking': ['mountain bike', 'mtb', 'mountain biking', 'off road cycling'],
             'Track Cycling': ['track cycling', 'velodrome', 'track race', 'track bike'],
             'Charity & Challenge Rides': ['charity ride', 'challenge ride', 'charity cycling', 'fundraising ride']
@@ -57,12 +58,12 @@ class UKRunningEventsSpider(BaseSpider):
             'CrossFit Competitions': ['crossfit', 'cross fit', 'crossfit competition', 'crossfit games'],
             'Hyrox / DEKA FIT': ['hyrox', 'deka fit', 'deka', 'hyrox race', 'deka race'],
             'Obstacle Fitness Events': ['obstacle fitness', 'fitness obstacle', 'fitness challenge'],
-            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp', 'challenge']
+            'Bootcamps & Fitness Challenges': ['bootcamp', 'fitness challenge', 'fitness bootcamp']
         },
         'Multi-Discipline': {
-            'Triathlon': ['triathlon', 'tri', 'triathlete', 'triathlon race'],
-            'Duathlon': ['duathlon', 'du', 'duathlete', 'duathlon race'],
-            'Aquathlon': ['aquathlon', 'aqua', 'aquathlete', 'aquathlon race'],
+            'Triathlon': ['triathlon', 'triathlete', 'triathlon race'],
+            'Duathlon': ['duathlon', 'duathlete', 'duathlon race'],
+            'Aquathlon': ['aquathlon', 'aquathlete', 'aquathlon race'],
             'Adventure Races': ['adventure race', 'multi sport', 'multi-sport', 'adventure challenge']
         }
     }
@@ -577,23 +578,10 @@ class UKRunningEventsSpider(BaseSpider):
     
     def get_event_category(self, title, description_parts):
         """Determine the specific category and subcategory for an event."""
-        if not title:
-            return None, None
-        
-        # Combine title and description for analysis
-        full_text = title.lower()
-        if description_parts:
-            full_text += " " + " ".join(description_parts).lower()
-        
-        # Check each category group and subcategory
-        for category_group, subcategories in self.CATEGORY_KEYWORDS.items():
-            for subcategory, keywords in subcategories.items():
-                for keyword in keywords:
-                    if keyword.lower() in full_text:
-                        self.logger.debug(f"Event categorized as: {category_group} -> {subcategory}")
-                        return category_group, subcategory
-        
-        return "Other", "General"
+        cat, sub = classify_event_by_keywords(title, description_parts, self.CATEGORY_KEYWORDS)
+        if cat and sub:
+            self.logger.debug(f"Event categorized as: {cat} -> {sub}")
+        return cat, sub
 
     def clean_whitespace(self, text):
         """Remove excessive whitespace (multiple spaces, tabs, newlines) from text."""

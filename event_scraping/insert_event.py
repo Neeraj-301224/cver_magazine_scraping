@@ -5,6 +5,8 @@ Processes all JSON files from scraped_data folder and checks for duplicates.
 import json
 import os
 import sys
+import re
+import html
 from datetime import datetime, timedelta
 from pathlib import Path
 from db_connection import get_connection
@@ -15,6 +17,41 @@ event_scraping_parent = Path(__file__).parent.parent
 if str(event_scraping_parent) not in sys.path:
     sys.path.insert(0, str(event_scraping_parent))
 from event_scraping.utils.common import validate_uk_coordinates
+
+
+_RE_SPACE_AFTER_FULL_STOP = re.compile(r'([a-z])\.([A-Z])')
+_RE_SPACE_AFTER_EXCL_QUEST = re.compile(r'([!?]+)(?=[A-Z][a-z])')
+_RE_SPACE_AFTER_ELLIPSIS = re.compile(r'([.]{2,})(?=[A-Za-z])')
+_RE_CAMEL_BOUNDARY = re.compile(r'([a-z])([A-Z])')
+_RE_ALLCAPS_THEN_WORD = re.compile(r'([A-Z]{2,})([A-Z][a-z]+)\b')
+
+
+def normalize_teamaretas_description(text):
+    """Normalize Team Aretas text while preserving punctuation."""
+    if not text:
+        return ""
+    text = html.unescape(str(text))
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    text = _RE_SPACE_AFTER_FULL_STOP.sub(r'\1. \2', text)
+    text = _RE_SPACE_AFTER_EXCL_QUEST.sub(r'\1 ', text)
+    text = _RE_SPACE_AFTER_ELLIPSIS.sub(r'\1 ', text)
+    text = _RE_CAMEL_BOUNDARY.sub(r'\1 \2', text)
+    text = _RE_ALLCAPS_THEN_WORD.sub(r'\1 \2', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n[ \t]*\n+', '\n\n', text)
+    return text.strip()
+
+
+def truncate_teamaretas_insert_excerpt(text, max_words=50, ellipsis="..."):
+    """Cap Team Aretas description text for insert: first max_words, then ellipsis (excerpt + body + map HTML)."""
+    if not text or not str(text).strip():
+        return ""
+    stripped = str(text).strip()
+    words = re.split(r"\s+", stripped)
+    if len(words) <= max_words:
+        return stripped
+    return " ".join(words[:max_words]) + ellipsis
+
 
 # Try to load settings for database configuration
 def get_db_settings():
@@ -223,10 +260,10 @@ def serialize_location_meta(event):
         #text_parts.append(f"<strong>{name}</strong>")
 
     if raw_date:
-        text_parts.append(f"<span class='event-date'>{raw_date}</span>")
+        text_parts.append(f'<span class="event-date">{raw_date}</span>')
 
     if description:
-        text_parts.append(f"<span class='event-description'>{description}</span>")
+        text_parts.append(f'<span class="event-description">{description}</span>')
 
     if url:
         text_parts.append(f'<a href="{url}">Find out more</a>')
@@ -251,9 +288,28 @@ def insert_event(event):
         cursor = connection.cursor()
         
         # Prepare post data
+        event_for_insert = dict(event) if isinstance(event, dict) else {}
+        if isinstance(event_for_insert.get('raw'), dict):
+            event_for_insert['raw'] = dict(event_for_insert['raw'])
+
         name = event.get('name', '')
         description = event.get('short_description', '')
         full_description = event.get('raw', {}).get('full_description', description)
+        site = (event.get('site') or '').strip().lower()
+        
+        # Team Aretas text can arrive with merged words from HTML boundaries/newlines.
+        # Keep punctuation; only normalize spacing and line breaks. ~50 words + ... on excerpt and full body (not in spider).
+        if site == 'teamaretas':
+            description = normalize_teamaretas_description(description)
+            full_description = normalize_teamaretas_description(full_description)
+            description = truncate_teamaretas_insert_excerpt(description)
+            full_description = truncate_teamaretas_insert_excerpt(full_description)
+            # Preserve explicit line breaks in post_content for WP rendering.
+            full_description = full_description.replace('\n', '<br>')
+            # Ensure UI/meta serializers use the same normalized Team Aretas text.
+            event_for_insert['short_description'] = description
+            event_for_insert.setdefault('raw', {})
+            event_for_insert['raw']['full_description'] = full_description
         url = event.get('url', '')
         raw_date = (event.get('raw_date') or '').strip()
         
@@ -328,7 +384,7 @@ def insert_event(event):
         
         # Insert postmeta
         meta_entries = [
-            ('_oum_location_key', serialize_location_meta(event)),
+            ('_oum_location_key', serialize_location_meta(event_for_insert)),
             ('_oum_location_image', ''),
             ('_oum_location_audio', ''),
             ('_edit_last', 1),
@@ -405,6 +461,11 @@ def insert_event(event):
         connection.rollback()
         connection.close()
         return None
+
+
+def ensure_term_relationships_for_post(post_id, event):
+    """Reserved for syncing taxonomy when a duplicate is skipped; not yet implemented."""
+    return 0
 
 
 def cleanup_old_backups(backup_folder, days_to_keep=None):

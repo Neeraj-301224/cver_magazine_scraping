@@ -22,10 +22,39 @@ _RE_EMOJI = re.compile(
 )
 _NORMALIZE_REPLACES = (
     ("\u201c", '"'), ("\u201d", '"'), ("\u2018", "'"), ("\u2019", "'"),
-    ("\u2013", " "), ("\u2014", " "), ("\u2026", "..."),
-    ("-", " "), ("{", " "), ("}", " "),
+    ("\u2013", "-"), ("\u2014", "-"), ("\u2026", "..."),
+    ("{", " "), ("}", " "),
     ("&nbsp;", " "), ("\u00a0", " "),
 )
+# e.g. "environment.Whether" / "e.g. word" (no split on "e.g") — [a-z]\.[A-Z] only
+_RE_SPACE_AFTER_FULL_STOP = re.compile(r"([a-z])\.([A-Z])")
+_RE_SPACE_AFTER_EXCL_QUEST = re.compile(r"([!?]+)(?=[A-Z][a-z])")
+_RE_SPACE_AFTER_ELLIPSIS = re.compile(r"([.]{2,})(?=[A-Za-z])")
+_RE_CAML_CASE_BOUNDARY = re.compile(r"([a-z])([A-Z])")
+_RE_ALLCAPS_THEN_WORD = re.compile(  # DURHAMWe, COMPETITIONTrail, CGFIT Leeds
+    r"([A-Z]{2,})([A-Z][a-z]+)\b"
+)
+
+
+def _normalize_jammed_prose(s):
+    """Insert missing spaces from stripped HTML/line breaks: .?! boundaries, newlines, camelCase, ALLCAPS+Word."""
+    if not isinstance(s, str) or not s:
+        return s
+    s = s.replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    s = _RE_CONTROL.sub(" ", s)
+    while "  " in s:
+        s = s.replace("  ", " ")
+    s = s.strip()
+    if not s:
+        return s
+    s = _RE_SPACE_AFTER_FULL_STOP.sub(r"\1. \2", s)
+    s = _RE_SPACE_AFTER_EXCL_QUEST.sub(r"\1 ", s)
+    s = _RE_SPACE_AFTER_ELLIPSIS.sub(r"\1 ", s)
+    s = _RE_CAML_CASE_BOUNDARY.sub(r"\1 \2", s)
+    s = _RE_ALLCAPS_THEN_WORD.sub(r"\1 \2", s)
+    while "  " in s:
+        s = s.replace("  ", " ")
+    return s
 
 
 def _strip_emoji_chars(s):
@@ -51,6 +80,7 @@ def _make_text_safe(s, for_html=False):
     """Make text safe for JSON/DB/UI. Normalizes unicode, strips control/emoji. If for_html=True, escapes for HTML."""
     if not isinstance(s, str):
         return s
+    s = _normalize_jammed_prose(s)
     s = s.replace("\n", " ").replace("\r", " ").replace("\t", " ")
     s = _RE_CONTROL.sub("", s)
     s = _RE_EMOJI.sub("", s)
@@ -69,20 +99,99 @@ def _make_text_safe(s, for_html=False):
     return s
 
 
+def _make_text_safe_multiline(s, for_html=False):
+    """Like _make_text_safe but keeps newline-separated paragraphs (one safe line per former row)."""
+    if not isinstance(s, str) or not s.strip():
+        return s
+    lines = []
+    for raw_ln in s.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        ln = _make_text_safe(raw_ln.strip(), for_html=for_html)
+        if isinstance(ln, str) and ln.strip():
+            lines.append(ln.strip())
+    return "\n".join(lines) if lines else ""
+
+
+def _join_p_tags_as_lines(response, root_css=None):
+    """One line per <p>: inner text joined with spaces; paragraphs separated by newlines."""
+    if root_css:
+        paras = response.css(f"{root_css} p")
+    else:
+        paras = response.css("p")
+    blocks = []
+    for p in paras:
+        t = " ".join(x.strip() for x in p.css("*::text").getall() if x and str(x).strip())
+        t = re.sub(r"\s+", " ", t).strip()
+        if t:
+            blocks.append(t)
+    if not blocks:
+        return None
+    return "\n".join(blocks).strip()
+
+
+def _description_string_value(response):
+    """XPath string(node) = document-order text without inserting spaces between child text nodes (unlike joining //text())."""
+    for xp in (
+        'string(//*[@id="contentContainer"]/div/div[3]/div[4]/div[2]/div[10]/div)',
+        'string(//*[contains(concat(" ", normalize-space(@class), " "), " description-content ")][contains(concat(" ", normalize-space(@class), " "), " from_text_editor ")])',
+    ):
+        s = response.xpath(xp).get()
+        if s and isinstance(s, str) and s.strip():
+            return re.sub(r"\s+", " ", s).strip()
+    s = _join_p_tags_as_lines(response, ".description-content.from_text_editor")
+    if s:
+        return s
+    s = response.css(".description-content.from_text_editor").xpath("string(.)").get()
+    if s and isinstance(s, str) and s.strip():
+        return re.sub(r"\s+", " ", s).strip()
+    return _join_p_tags_as_lines(response, None)
+
+
+def _truncate_blurb(text, max_chars=500, max_words=85):
+    """Cap listing blurb length (site copy often includes schedules/movement standards)."""
+    if not text:
+        return None
+    lines = []
+    for raw_ln in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        ln = re.sub(r"[ \t]+", " ", raw_ln).strip()
+        if ln:
+            lines.append(ln)
+    text = "\n".join(lines)
+    flat_words = re.sub(r"\s+", " ", text).split()
+    if len(flat_words) > max_words:
+        text = " ".join(flat_words[:max_words]) + "..."
+    if len(text) > max_chars:
+        if "\n" in text:
+            chunk = text[:max_chars]
+            nl = chunk.rfind("\n")
+            if nl > max_chars // 2:
+                text = text[:nl].rstrip() + "..."
+            else:
+                text = text[: max_chars - 3].rsplit(" ", 1)[0] + "..."
+        else:
+            text = text[: max_chars - 3].rsplit(" ", 1)[0] + "..."
+    return text
+
+
 def _sanitize_event_item(item):
     """Apply text sanitization to all text fields of an event item. Modifies item in place."""
     if not item:
         return
-    for key in ("name", "short_description", "address"):
+    for key in ("name", "address"):
         val = item.get(key)
         if isinstance(val, str) and val.strip():
             item[key] = _make_text_safe(val, for_html=False)
+    val = item.get("short_description")
+    if isinstance(val, str) and val.strip():
+        item["short_description"] = _make_text_safe_multiline(val, for_html=False)
     raw = item.get("raw")
     if isinstance(raw, dict):
-        for key in ("title", "address", "raw_date", "full_description"):
+        for key in ("title", "address", "raw_date"):
             val = raw.get(key)
             if isinstance(val, str) and val.strip():
                 raw[key] = _make_text_safe(val, for_html=False)
+        val = raw.get("full_description")
+        if isinstance(val, str) and val.strip():
+            raw["full_description"] = _make_text_safe_multiline(val, for_html=False)
 
 
 class TeamAretasSpider(BaseSpider):
@@ -471,22 +580,9 @@ class TeamAretasSpider(BaseSpider):
             self.logger.warning("Skipping event with no title: %s", response.url)
             return
 
-        # Description: primary from contentContainer XPath (div[2]/div[10]/div), then class "description-content from_text_editor"
-        desc_parts = response.xpath(
-            '//*[@id="contentContainer"]/div/div[3]/div[4]/div[2]/div[10]/div//text()'
-        ).getall()
-        if not desc_parts:
-            desc_parts = response.css(".description-content.from_text_editor *::text").getall()
-        if not desc_parts:
-            desc_parts = (
-                response.css("[class*='description'] *::text").getall()
-                or response.css(".content *::text, article *::text").getall()
-                or response.css("p::text").getall()
-            )
-        short_description = None
-        if desc_parts:
-            joined = " ".join(p.strip() for p in desc_parts if p and p.strip())
-            short_description = joined[:500].rsplit(" ", 1)[0] + "..." if len(joined) > 500 else joined
+        # Description: XPath string() keeps punctuation between inline nodes; _truncate_blurb caps word/char noise
+        joined = _description_string_value(response)
+        short_description = _truncate_blurb(joined) if joined else None
 
         # Date: primary from contentContainer XPath, then class "info-data st600", then fallbacks
         raw_date_parts = response.xpath('//*[@id="contentContainer"]/div/div[3]/div[4]/div[1]/div[5]/div[2]/div[2]//text()').getall()
@@ -507,8 +603,8 @@ class TeamAretasSpider(BaseSpider):
                 response.css("[class*='date']::text").get()
                 or response.css("[class*='event-date']::text").get()
             )
-        if not raw_date and desc_parts:
-            text = " ".join(desc_parts)
+        if not raw_date and joined:
+            text = joined
             for pat in [
                 r"(\d{1,2})\.(\d{1,2})\.(\d{4})",
                 r"(\d{1,2})/(\d{1,2})/(\d{4})",
@@ -556,7 +652,7 @@ class TeamAretasSpider(BaseSpider):
             address = self.extract_address(response)
 
         # Detail page is JS-rendered: Scrapy often gets empty HTML. If date, location, title or description missing, load with Selenium.
-        if (not raw_date or not address or not title.strip() or not desc_parts) and re.search(r"/competitions/\d+", response.url):
+        if (not raw_date or not address or not title.strip() or not short_description) and re.search(r"/competitions/\d+", response.url):
             html = self._fetch_detail_page_html_selenium(response.url)
             if html:
                 sel = Selector(text=html)
@@ -566,13 +662,10 @@ class TeamAretasSpider(BaseSpider):
                         title = " ".join(t.strip() for t in title_parts if t and t.strip()).strip()
                         if "|" in title:
                             title = title.split("|", 1)[0].strip()
-                if not desc_parts:
-                    desc_parts = sel.xpath(
-                        '//*[@id="contentContainer"]/div/div[3]/div[4]/div[2]/div[10]/div//text()'
-                    ).getall()
-                    if desc_parts:
-                        joined = " ".join(p.strip() for p in desc_parts if p and p.strip())
-                        short_description = joined[:500].rsplit(" ", 1)[0] + "..." if len(joined) > 500 else joined
+                if not short_description:
+                    joined = _description_string_value(sel)
+                    if joined:
+                        short_description = _truncate_blurb(joined)
                 if not raw_date:
                     raw_date_parts = sel.xpath('//*[@id="contentContainer"]/div/div[3]/div[4]/div[1]/div[5]/div[2]/div[2]//text()').getall()
                     raw_date = " ".join(t.strip() for t in raw_date_parts if t and t.strip()).strip() if raw_date_parts else None

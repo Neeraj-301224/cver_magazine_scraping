@@ -507,14 +507,24 @@ class BaseSpider(scrapy.Spider):
             return [("Wellness & Mind", default_sub)]
 
         if hasattr(self, 'category') and self.category == "fitness_training":
-            # Simple title/name-based category for running events spiders: swim/swimming → Swimming, bike/ride → Cycling, else Running Events
+            # Title/description: real swim vs bike/cycle signals only (word boundaries — no "swim" inside unrelated tokens)
             text = (title or "") + " "
             if description_parts:
                 text += " ".join(str(p) for p in description_parts) if isinstance(description_parts, list) else str(description_parts)
             text_lower = text.lower()
-            if "swim" in text_lower or "swimming" in text_lower:
+            swim_rx = re.compile(
+                r"\b(swimming|swimmers?|swimrun|swim-run|aquathlon|swim)\b|"
+                r"\bopen\s+water\b|\bsea\s+swim\b|\bpool\s+swim\b|\briver\s+swim\b|\blake\s+swim\b",
+                re.I,
+            )
+            cycle_rx = re.compile(
+                r"\b(bikes?|biking|bicycles?|bicycle|cycling|cyclists?|sportives?|sportif|"
+                r"velodrome|mtb|cyclocross|time\s+trial|rides?|riding)\b",
+                re.I,
+            )
+            if swim_rx.search(text_lower):
                 return [("Swimming", "Swimming")]
-            if "bike" in text_lower or "ride" in text_lower:
+            if cycle_rx.search(text_lower):
                 return [("Cycling", "Cycling")]
             return [("Running Events", "Running Events")]
 

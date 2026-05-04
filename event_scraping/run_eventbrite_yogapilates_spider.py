@@ -1,27 +1,27 @@
+import sys
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
-from event_scraping.spiders.fitness_training.teamaretas_spider import TeamAretasSpider
-
-# Stop after this many items (set to None for a full crawl).
-CLOSESPIDER_ITEMCOUNT = None
+from event_scraping.spiders.wellness_mind.eventbrite_yogapilates_spider import (
+    EventbriteYogaPilatesSpider,
+)
 
 if __name__ == "__main__":
     from datetime import datetime
     from pathlib import Path
 
-    spider_name = "teamaretas"
+    spider_name = "eventbrite_yogapilates"
+    # Save JSON files to scraped_data folder with date in filename
     scraped_data_dir = Path(__file__).parent / "scraped_data"
     scraped_data_dir.mkdir(exist_ok=True)
+    # Format: spidername_YYYY-MM-DD.json
     date_str = datetime.now().strftime("%Y-%m-%d")
     output_file = str(scraped_data_dir / f"{spider_name}_{date_str}.json")
 
-    print(f"Running {TeamAretasSpider.__name__} spider")
-    print(f"Spider name: {TeamAretasSpider.name}")
+    print(f"Running {EventbriteYogaPilatesSpider.__name__} spider")
+    print(f"Spider name: {EventbriteYogaPilatesSpider.name}")
     print(f"Output file: {output_file}")
-    if CLOSESPIDER_ITEMCOUNT:
-        print(f"CLOSESPIDER_ITEMCOUNT={CLOSESPIDER_ITEMCOUNT}")
 
-    crawl_settings = {
+    process = CrawlerProcess({
         **get_project_settings(),
         "FEEDS": {
             output_file: {
@@ -41,10 +41,7 @@ if __name__ == "__main__":
         "AUTOTHROTTLE_START_DELAY": 1,
         "AUTOTHROTTLE_MAX_DELAY": 10,
         "AUTOTHROTTLE_TARGET_CONCURRENCY": 1.0,
-        "LOG_LEVEL": "INFO",
-    }
-    if CLOSESPIDER_ITEMCOUNT:
-        crawl_settings["CLOSESPIDER_ITEMCOUNT"] = CLOSESPIDER_ITEMCOUNT
-    process = CrawlerProcess(crawl_settings)
-    process.crawl(TeamAretasSpider)
+        "LOG_LEVEL": "INFO"
+    })
+    process.crawl(EventbriteYogaPilatesSpider)
     process.start()

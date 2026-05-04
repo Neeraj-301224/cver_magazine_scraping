@@ -51,6 +51,29 @@ class SharphamTrustSpider(BaseSpider):
         # Add "UK" to the end of the address
         return f"{address}, UK"
 
+    def is_online_event(self, title=None, address=None, description=None):
+        """Return True if event appears to be online/virtual."""
+        text_parts = []
+        if title:
+            text_parts.append(title)
+        if address:
+            text_parts.append(address)
+        if description:
+            text_parts.append(description)
+
+        combined_text = " ".join(text_parts).lower()
+        online_keywords = [
+            "online",
+            "virtual",
+            "zoom",
+            "webinar",
+            "livestream",
+            "live stream",
+            "remote",
+            "online retreat",
+        ]
+        return any(keyword in combined_text for keyword in online_keywords)
+
     def parse(self, response):
         """Parse the listing page and extract 'More Info' links to follow to detail pages."""
         self.logger.info(f"Parsing listing page: {response.url}")
@@ -336,25 +359,79 @@ class SharphamTrustSpider(BaseSpider):
         if not address:
             address = "Sharpham House, Ashprington, Totnes, Devon, UK TQ9 7UT"
         
-        # Extract description from class: row event-description content justify-content-center content
+        # Extract description from the "Overview" section using explicit page structure.
+        # Primary target from user-provided path:
+        # //*[@id="overview"]/div/div[1]/div/div/div/h2
+        # and text under:
+        # //*[@id="overview"]/div/div[1]/div/div/div
         description = None
-        desc_selectors = [
-            '.row.event-description.content.justify-content-center.content p::text',
-            '.row.event-description.content p::text',
-            '.event-description p::text',
-            '.row.event-description.content.justify-content-center.content *::text',
-        ]
-        
         desc_parts = []
-        for selector in desc_selectors:
-            parts = response.css(selector).getall()
-            if parts:
-                desc_parts = [part.strip() for part in parts if part.strip() and len(part.strip()) > 10]
-                if desc_parts:
-                    break
-        
+        overview_container = response.xpath('//*[@id="overview"]/div/div[1]/div/div/div')
+
+        if overview_container:
+            # Get first 2-3 paragraph texts only, as requested
+            paragraph_nodes = overview_container.xpath('.//p[position() <= 3]')
+            for p_node in paragraph_nodes:
+                p_text = ' '.join(t.strip() for t in p_node.css('::text').getall() if t and t.strip())
+                if p_text and len(p_text) > 10:
+                    desc_parts.append(p_text)
+
+            # If no direct <p> found, fallback to first 2-3 meaningful text chunks
+            if not desc_parts:
+                raw_text_parts = overview_container.css('*::text').getall()
+                for part in raw_text_parts:
+                    clean_part = part.strip()
+                    if not clean_part or len(clean_part) <= 10:
+                        continue
+                    if clean_part.lower() == 'overview':
+                        continue
+                    if title and clean_part.lower() == title.strip().lower():
+                        continue
+                    desc_parts.append(clean_part)
+                    if len(desc_parts) >= 3:
+                        break
+
+            # Final filter to avoid heading/title noise
+            filtered_parts = []
+            for part in desc_parts:
+                if part.lower() == 'overview':
+                    continue
+                if title and part.strip().lower() == title.strip().lower():
+                    continue
+                filtered_parts.append(part)
+            desc_parts = filtered_parts[:3]
+
+        # Fallback for pages where "Overview" section is missing
+        if not desc_parts:
+            desc_selectors = [
+                '.row.event-description.content.justify-content-center.content p::text',
+                '.row.event-description.content p::text',
+                '.event-description p::text',
+                '.row.event-description.content.justify-content-center.content *::text',
+            ]
+
+            for selector in desc_selectors:
+                parts = response.css(selector).getall()
+                if parts:
+                    raw_parts = [part.strip() for part in parts if part and part.strip() and len(part.strip()) > 10]
+                    filtered_parts = []
+                    for part in raw_parts:
+                        if part.lower() == 'overview':
+                            continue
+                        if title and part.strip().lower() == title.strip().lower():
+                            continue
+                        filtered_parts.append(part)
+                    if filtered_parts:
+                        desc_parts = filtered_parts
+                        break
+
         if desc_parts:
             description = ' '.join(desc_parts)
+
+        # Skip online-only events
+        if self.is_online_event(title=title, address=address, description=description):
+            self.logger.info(f"Skipping online event: {title or response.url}")
+            return
         
         # Create short description
         short_description = None
@@ -525,6 +602,11 @@ class SharphamTrustSpider(BaseSpider):
                 
                 short_description = description[:200] + '...' if description and len(description) > 200 else description
                 item['short_description'] = self.clean_text(short_description) if short_description else None
+
+                # Skip online-only events
+                if self.is_online_event(title=title, address=address, description=description):
+                    self.logger.info(f"Skipping online event: {title or url}")
+                    continue
                 
                 # Build event_data for database check before geocoding
                 geocode_event_data = {
@@ -661,6 +743,11 @@ class SharphamTrustSpider(BaseSpider):
                     
                     short_description = description[:200] + '...' if description and len(description) > 200 else description
                     item['short_description'] = self.clean_text(short_description) if short_description else None
+
+                    # Skip online-only events
+                    if self.is_online_event(title=title, address=address, description=description):
+                        self.logger.info(f"Skipping online event: {title or url}")
+                        continue
                     
                     # Build event_data for database check before geocoding
                     geocode_event_data = {

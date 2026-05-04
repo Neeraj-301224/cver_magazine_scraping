@@ -301,6 +301,9 @@ def convert_date_format(date_str):
 def get_event_category(title, description_parts, category_keywords=None):
     """Determine the specific category and subcategory for an event based on keywords.
     
+    Uses word-boundary matching (same rules as get_all_matching_categories) so short
+    tokens like "tt" or "tri" do not match inside unrelated words (e.g. Nottingham).
+    
     Args:
         title (str): Event title
         description_parts (list or str): Event description parts
@@ -322,21 +325,9 @@ def get_event_category(title, description_parts, category_keywords=None):
         return None, None
     
     try:
-        # Combine title and description for analysis
-        full_text = title.lower()
-        if description_parts:
-            if isinstance(description_parts, list):
-                full_text += " " + " ".join(str(p).lower() for p in description_parts)
-            else:
-                full_text += " " + str(description_parts).lower()
-        
-        # Check each category group and subcategory
-        for category_group, subcategories in category_keywords.items():
-            for subcategory, keywords in subcategories.items():
-                for keyword in keywords:
-                    if keyword.lower() in full_text:
-                        return category_group, subcategory
-        
+        matches = get_all_matching_categories(title, description_parts, category_keywords)
+        if matches:
+            return matches[0][0], matches[0][1]
         return "Other", "General"
     except Exception:
         return None, None
