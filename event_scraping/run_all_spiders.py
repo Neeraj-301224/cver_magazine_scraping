@@ -15,6 +15,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from db_connection import get_connection
 # Import insert_event module
 from insert_event import main as insert_events
 
@@ -38,27 +39,27 @@ def run_all_spiders():
     # Define all spiders from all categories
     spiders = [
         # Community & Social
-        "bhf",
-        "eventbrite",
-        "gosh",
-        "macmillan",
+        #"bhf",
+        #"eventbrite",
+        #"gosh",
+        #"macmillan",
         ## Fitness & Training
-        "findarace",
-        "letsdothis",
-        "runguides",
-        "runthrough", 
+        #"findarace",
+        #"letsdothis",
+        #"runguides",
+        #"runthrough", 
         "teamaretas",       
-        "timeoutdoors",
-        "timeoutdoors_cycling_swim",
-        "ukrunningevents",
-        ## Wellness & Mind
-        "eventbrite_yogapilates",
-        "mindfulnessassociation",
-        "mindfulnessuk",
-        "mindspace",
-        "pilatesflow",
-        "sharphamtrust",
-        "yogawithmanon",
+        #"timeoutdoors",
+        #"timeoutdoors_cycling_swim",
+        #"ukrunningevents",
+        ### Wellness & Mind
+        #"eventbrite_yogapilates",
+        #"mindfulnessassociation",
+        #"mindfulnessuk",
+        #"mindspace",
+        #"pilatesflow",
+        #"sharphamtrust",
+        #"yogawithmanon",
     ]
     
     print("=" * 80)
@@ -142,6 +143,38 @@ def run_all_spiders():
     return successful > 0
 
 
+def update_expired_events():
+    """Update post_status to 'draft' for past events where post_date < CURDATE()."""
+    print("\n" + "=" * 80)
+    print("STEP 3: UPDATING EXPIRED EVENTS STATUS TO DRAFT")
+    print("=" * 80)
+    
+    connection = get_connection()
+    if not connection:
+        print("❌ Failed to connect to database for updating expired events.")
+        return
+        
+    try:
+        cursor = connection.cursor()
+        query = """
+        UPDATE `zuzl_posts`
+        SET post_status = 'draft'
+        WHERE post_type = 'oum-location'
+          AND post_status = 'publish'
+          AND post_date < CURDATE()
+        """
+        cursor.execute(query)
+        connection.commit()
+        affected_rows = cursor.rowcount
+        print(f"✅ Successfully set post_status = 'draft' for {affected_rows} expired event(s).")
+        cursor.close()
+        connection.close()
+    except Exception as e:
+        print(f"❌ Error updating expired events: {e}")
+        import traceback
+        traceback.print_exc()
+
+
 def main():
     """Main function to run all spiders and then insert events."""
     start_time = datetime.now()
@@ -162,12 +195,15 @@ def main():
         print("=" * 80)
         print(f"Start time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         
-        insert_events()
+        #insert_events()
+        
+        # Step 3: Update expired events
+        
         
         # Final summary
         end_time = datetime.now()
         duration = end_time - start_time
-        
+        update_expired_events()
         print("\n" + "=" * 80)
         print("🎉 COMPLETE PROCESS FINISHED")
         print("=" * 80)

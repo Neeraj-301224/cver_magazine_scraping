@@ -42,7 +42,7 @@ def normalize_teamaretas_description(text):
     return text.strip()
 
 
-def truncate_teamaretas_insert_excerpt(text, max_words=50, ellipsis="..."):
+def truncate_teamaretas_insert_excerpt(text, max_words=35, ellipsis="..."):
     """Cap Team Aretas description text for insert: first max_words, then ellipsis (excerpt + body + map HTML)."""
     if not text or not str(text).strip():
         return ""

@@ -1,0 +1,566 @@
+[
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/organise-an-event",
+  "name": "Do your own fundraising",
+  "raw_date": null,
+  "date": null,
+  "short_description": null,
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Do your own fundraising",
+    "date": null,
+    "desc_preview": null,
+    "full_description": null,
+    "address": null,
+    "coordinates": null
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/fundraising-ideas",
+  "name": "Fundraising ideas",
+  "raw_date": null,
+  "date": null,
+  "short_description": null,
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Fundraising ideas",
+    "date": null,
+    "desc_preview": null,
+    "full_description": null,
+    "address": null,
+    "coordinates": null
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/ways-to-fundraise",
+  "name": "Ways to fundraise",
+  "raw_date": null,
+  "date": null,
+  "short_description": null,
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Ways to fundraise",
+    "date": null,
+    "desc_preview": null,
+    "full_description": null,
+    "address": null,
+    "coordinates": null
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/pay-in-your-fundraising-money",
+  "name": "Pay in",
+  "raw_date": null,
+  "date": null,
+  "short_description": null,
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Pay in",
+    "date": null,
+    "desc_preview": null,
+    "full_description": null,
+    "address": null,
+    "coordinates": null
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/stories-and-resources",
+  "name": "Stories and resources",
+  "raw_date": null,
+  "date": null,
+  "short_description": null,
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Stories and resources",
+    "date": null,
+    "desc_preview": null,
+    "full_description": null,
+    "address": null,
+    "coordinates": null
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/ways-to-fundraise",
+  "name": "Your account",
+  "raw_date": "Date: 2026",
+  "date": "Date: 2026",
+  "short_description": null,
+  "address": "United Kingdom",
+  "coordinates": {
+    "lat": 54.7023545,
+    "lon": -3.2765753
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Your account",
+    "date": "Date: 2026",
+    "desc_preview": "",
+    "full_description": "",
+    "address": "United Kingdom",
+    "coordinates": {
+      "lat": 54.7023545,
+      "lon": -3.2765753
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-fitness/ultra-white-collar-boxing",
+  "name": "Ultra White Collar Boxing",
+  "raw_date": "Date: Various dates 2026",
+  "date": "Date: Various dates 2026",
+  "short_description": "Ultra White Collar Boxing Date: Various dates 2026 Location: UK",
+  "address": "UK",
+  "coordinates": {
+    "lat": 54.7023545,
+    "lon": -3.2765753
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Running",
+      "Road running"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Ultra White Collar Boxing",
+    "date": "Date: Various dates 2026",
+    "desc_preview": "Ultra White Collar Boxing Date: Various dates 2026 Location: UK",
+    "full_description": "Ultra White Collar Boxing Date: Various dates 2026 Location: UK",
+    "address": "UK",
+    "coordinates": {
+      "lat": 54.7023545,
+      "lon": -3.2765753
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/fundraising-ideas/physical-activity/skydiving",
+  "name": "Skydive 2026",
+  "raw_date": "Date: Anytime",
+  "date": "Date: Anytime",
+  "short_description": "Skydive 2026 Date: Anytime Location: United Kingdom",
+  "address": "United Kingdom",
+  "coordinates": {
+    "lat": 54.7023545,
+    "lon": -3.2765753
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Skydive 2026",
+    "date": "Date: Anytime",
+    "desc_preview": "Skydive 2026 Date: Anytime Location: United Kingdom",
+    "full_description": "Skydive 2026 Date: Anytime Location: United Kingdom",
+    "address": "United Kingdom",
+    "coordinates": {
+      "lat": 54.7023545,
+      "lon": -3.2765753
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-walks-and-hikes/walk-100-miles",
+  "name": "Walk 100 miles in August",
+  "raw_date": "Date: August 2026",
+  "date": "Date: August 2026",
+  "short_description": "Walk 100 miles in August Date: August 2026 Location: Anywhere",
+  "address": "Anywhere",
+  "coordinates": {
+    "lat": 50.8735354,
+    "lon": 0.0672728
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Walk 100 miles in August",
+    "date": "Date: August 2026",
+    "desc_preview": "Walk 100 miles in August Date: August 2026 Location: Anywhere",
+    "full_description": "Walk 100 miles in August Date: August 2026 Location: Anywhere",
+    "address": "Anywhere",
+    "coordinates": {
+      "lat": 50.8735354,
+      "lon": 0.0672728
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/run-62-miles-in-august",
+  "name": "Run 62 Miles in August",
+  "raw_date": "Date: August 2026",
+  "date": "Date: August 2026",
+  "short_description": "Run 62 Miles in August Date: August 2026 Location: Anywhere",
+  "address": "Anywhere",
+  "coordinates": {
+    "lat": 50.8735354,
+    "lon": 0.0672728
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Run 62 Miles in August",
+    "date": "Date: August 2026",
+    "desc_preview": "Run 62 Miles in August Date: August 2026 Location: Anywhere",
+    "full_description": "Run 62 Miles in August Date: August 2026 Location: Anywhere",
+    "address": "Anywhere",
+    "coordinates": {
+      "lat": 50.8735354,
+      "lon": 0.0672728
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/richmond-runfest-air-10k",
+  "name": "Richmond 10K",
+  "raw_date": "Date: 12 September 2026",
+  "date": "09/12/2026",
+  "short_description": "Richmond 10K Date: 12 September 2026 Location: Richmond upon Thames",
+  "address": "Richmond upon Thames",
+  "coordinates": {
+    "lat": 51.4405529,
+    "lon": -0.3076394
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Running",
+      "Road running"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Richmond 10K",
+    "date": "Date: 12 September 2026",
+    "desc_preview": "Richmond 10K Date: 12 September 2026 Location: Richmond upon Thames",
+    "full_description": "Richmond 10K Date: 12 September 2026 Location: Richmond upon Thames",
+    "address": "Richmond upon Thames",
+    "coordinates": {
+      "lat": 51.4405529,
+      "lon": -0.3076394
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-walks-and-hikes/surrey-three-peaks-challenge",
+  "name": "Defeat the Peak: Surrey Three Peaks Challenge",
+  "raw_date": "Date: 26 September 2026",
+  "date": "09/26/2026",
+  "short_description": "Defeat the Peak: Surrey Three Peaks Challenge Date: 26 September 2026 Location: Surrey",
+  "address": "Surrey",
+  "coordinates": {
+    "lat": 51.2715316,
+    "lon": -0.3414524
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Defeat the Peak: Surrey Three Peaks Challenge",
+    "date": "Date: 26 September 2026",
+    "desc_preview": "Defeat the Peak: Surrey Three Peaks Challenge Date: 26 September 2026 Location: Surrey",
+    "full_description": "Defeat the Peak: Surrey Three Peaks Challenge Date: 26 September 2026 Location: Surrey",
+    "address": "Surrey",
+    "coordinates": {
+      "lat": 51.2715316,
+      "lon": -0.3414524
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/great-south-run",
+  "name": "Great South Run",
+  "raw_date": "Date: 18 October 2026",
+  "date": "10/18/2026",
+  "short_description": "Great South Run Date: 18 October 2026 Location: Portsmouth",
+  "address": "Portsmouth",
+  "coordinates": {
+    "lat": 50.800031,
+    "lon": -1.0906023
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Great South Run",
+    "date": "Date: 18 October 2026",
+    "desc_preview": "Great South Run Date: 18 October 2026 Location: Portsmouth",
+    "full_description": "Great South Run Date: 18 October 2026 Location: Portsmouth",
+    "address": "Portsmouth",
+    "coordinates": {
+      "lat": 50.800031,
+      "lon": -1.0906023
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-fitness/hyrox-london",
+  "name": "HYROX London ExCel 2026",
+  "raw_date": "Date: 2 to 6 December 2026",
+  "date": "12/06/2026",
+  "short_description": "HYROX London ExCel 2026 Date: 2 to 6 December 2026 Location: London",
+  "address": "London",
+  "coordinates": {
+    "lat": 51.5074456,
+    "lon": -0.1277653
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Functional Fitness",
+      "Hyrox / DEKA FIT"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "HYROX London ExCel 2026",
+    "date": "Date: 2 to 6 December 2026",
+    "desc_preview": "HYROX London ExCel 2026 Date: 2 to 6 December 2026 Location: London",
+    "full_description": "HYROX London ExCel 2026 Date: 2 to 6 December 2026 Location: London",
+    "address": "London",
+    "coordinates": {
+      "lat": 51.5074456,
+      "lon": -0.1277653
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/brighton-marathon",
+  "name": "Brighton Marathon 2027",
+  "raw_date": "Date: 4 April 2027",
+  "date": "04/04/2027",
+  "short_description": "Brighton Marathon 2027 Date: 4 April 2027 Location: Brighton and Hove",
+  "address": "Brighton and Hove",
+  "coordinates": {
+    "lat": 50.8453169,
+    "lon": -0.1497469
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Running",
+      "Road running"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Brighton Marathon 2027",
+    "date": "Date: 4 April 2027",
+    "desc_preview": "Brighton Marathon 2027 Date: 4 April 2027 Location: Brighton and Hove",
+    "full_description": "Brighton Marathon 2027 Date: 4 April 2027 Location: Brighton and Hove",
+    "address": "Brighton and Hove",
+    "coordinates": {
+      "lat": 50.8453169,
+      "lon": -0.1497469
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/london-marathon",
+  "name": "London Marathon 2027",
+  "raw_date": "Date: 24 and 25 April 2027",
+  "date": "04/25/2027",
+  "short_description": "London Marathon 2027 Date: 24 and 25 April 2027 Location: London",
+  "address": "London",
+  "coordinates": {
+    "lat": 51.5074456,
+    "lon": -0.1277653
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Running",
+      "Road running"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "London Marathon 2027",
+    "date": "Date: 24 and 25 April 2027",
+    "desc_preview": "London Marathon 2027 Date: 24 and 25 April 2027 Location: London",
+    "full_description": "London Marathon 2027 Date: 24 and 25 April 2027 Location: London",
+    "address": "London",
+    "coordinates": {
+      "lat": 51.5074456,
+      "lon": -0.1277653
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/charity-runs/edinburgh-marathon",
+  "name": "Edinburgh Marathon 2027",
+  "raw_date": "Date: 30 May 2027",
+  "date": "05/30/2027",
+  "short_description": "Edinburgh Marathon 2027 Date: 30 May 2027 Location: Edinburgh",
+  "address": "Edinburgh",
+  "coordinates": {
+    "lat": 55.9533456,
+    "lon": -3.1883749
+  },
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ],
+    [
+      "Running",
+      "Road running"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Edinburgh Marathon 2027",
+    "date": "Date: 30 May 2027",
+    "desc_preview": "Edinburgh Marathon 2027 Date: 30 May 2027 Location: Edinburgh",
+    "full_description": "Edinburgh Marathon 2027 Date: 30 May 2027 Location: Edinburgh",
+    "address": "Edinburgh",
+    "coordinates": {
+      "lat": 55.9533456,
+      "lon": -3.1883749
+    }
+  }
+},
+{
+  "site": "macmillan",
+  "url": "https://www.macmillan.org.uk/fundraise/fundraising-faqs",
+  "name": "Common questions about fundraising for Macmillan",
+  "raw_date": null,
+  "date": null,
+  "short_description": "Unfortunately, we cant be at every event happening across the UK. However, that doesnt mean you cant be part of Team Macmillan.",
+  "address": null,
+  "coordinates": null,
+  "categories": [
+    [
+      "Charity Events",
+      "Charity Events"
+    ]
+  ],
+  "category": "Charity Events",
+  "subcategory": "Charity Events",
+  "raw": {
+    "title": "Common questions about fundraising for Macmillan",
+    "date": null,
+    "desc_preview": "Unfortunately, we cant be at every event happening across the UK. However, that doesnt mean you cant be part of Team Macmillan.",
+    "full_description": "Unfortunately, we cant be at every event happening across the UK. However, that doesnt mean you cant be part of Team Macmillan.",
+    "address": null,
+    "coordinates": null
+  }
+}
+]
