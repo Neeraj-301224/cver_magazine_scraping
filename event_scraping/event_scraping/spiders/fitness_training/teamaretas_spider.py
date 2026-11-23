@@ -688,6 +688,8 @@ class TeamAretasSpider(BaseSpider):
                             address = " ".join(t.strip() for t in info_data_els if t and t.strip()).strip()
 
         if address:
+            # Strip trailing "More competitions in/on..."
+            address = re.sub(r"\s*More competitions\s+(in|on)\b.*$", "", address, flags=re.IGNORECASE).strip()
             address = self.remove_location_text(address)
         coords = self.extract_coordinates(response)
         event_data = {"name": title, "date": date, "url": response.url}
@@ -695,6 +697,16 @@ class TeamAretasSpider(BaseSpider):
             geocoded = self.geocode_address(address, event_data=event_data)
             if geocoded and not coords:
                 coords = geocoded
+
+        # If geocoding the full address string failed, fallback to UK postcode
+        if not coords and address:
+            postcode_match = re.search(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", address, re.IGNORECASE)
+            if postcode_match:
+                uk_postcode = postcode_match.group(0).upper()
+                try:
+                    coords = self.geocode_address(uk_postcode, event_data=event_data)
+                except Exception:
+                    pass
 
         # Team Aretas: if event has "Hyrox" → Hyrox category, else → Crossfit category.
         event_text = f"{(title or '')} {(short_description or '')}".lower()
